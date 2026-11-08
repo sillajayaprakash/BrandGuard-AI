@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BrandGuard AI — Enterprise Brand Governance & Compliance Platform</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛡️</text></svg>">
+</head>
+<body class="theme-light">
+  <div id="app" class="app-container">
+    
+    <!-- TOP HEADER -->
+    <header class="app-header">
+      <div class="header-left">
+        <div class="brand-logo">
+          <div class="logo-shield-badge" aria-hidden="true">
+            <svg class="shield-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              <path d="m9 12 2 2 4-4"/>
+            </svg>
+          </div>
+          <div class="logo-text">
+            <div class="logo-title-row">
+              <span class="logo-brand">BrandGuard</span>
+              <span class="logo-badge-ai">AI</span>
+              <span class="engine-badge" title="Fully deterministic rule-based analysis. No external AI APIs or secret keys required.">
+                <span class="engine-pulse"></span>
+                Rule-Based Engine v1.0 (No Live AI)
+              </span>
+            </div>
+            <p class="logo-subtitle">Enterprise Marketing Governance & Deterministic Claim Compliance</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <!-- Preset Selector -->
+        <div class="preset-selector-group">
+          <label for="presetSelect" class="preset-label">Active Guideline:</label>
+          <div class="select-wrapper">
+            <select id="presetSelect" class="preset-dropdown" aria-label="Select active brand guideline">
+              <option value="apexTech">🏢 ApexTech B2B SaaS</option>
+              <option value="novaPay">💳 NovaPay FinTech</option>
+              <option value="vitaLife">🌿 VitaLife Health & Wellness</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Export Audit Certificate -->
+        <button id="exportReportBtn" class="btn btn-secondary btn-sm" title="Download Compliance Audit Certificate (Markdown)">
+          <svg class="btn-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          <span>Export Audit</span>
+        </button>
+
+        <!-- Theme Toggle -->
+        <button id="themeToggleBtn" class="btn btn-icon btn-sm" title="Toggle Dark/Light Mode" aria-label="Toggle Theme">
+          🌙
+        </button>
+      </div>
+    </header>
+
+    <!-- VERIFIED GOVERNANCE DISCLOSURE BANNER -->
+    <div class="notice-banner">
+      <div class="notice-badge">
+        <span class="notice-shield">🔒</span>
+        <span>Deterministic Governance</span>
+      </div>
+      <div class="notice-text">
+        <strong>First-Generation Compliance Engine:</strong> Content verification executes 100% deterministically in your local environment using configured brand dictionaries and claim heuristics. Zero external LLM calls or API keys required.
+      </div>
+    </div>
+
+    <!-- EXECUTIVE KPI OVERVIEW BAR -->
+    <div class="kpi-overview-bar">
+      <!-- KPI 1: Overall Score -->
+      <div class="kpi-card kpi-card-score">
+        <div class="kpi-card-header">
+          <span class="kpi-label">Compliance Health</span>
+          <span id="kpiScoreVerdict" class="kpi-status-tag status-tag-compliant">COMPLIANT</span>
+        </div>
+        <div class="kpi-card-body">
+          <div class="kpi-score-display">
+            <span id="kpiScoreValue" class="kpi-score-number">100</span>
+            <span class="kpi-score-max">/100</span>
+          </div>
+          <div class="kpi-progress-bar">
+            <div id="kpiProgressBarFill" class="kpi-progress-fill" style="width: 100%;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- KPI 2: Critical Issues -->
+      <div class="kpi-card kpi-card-critical">
+        <div class="kpi-card-header">
+          <span class="kpi-label">Critical Violations</span>
+          <span class="kpi-icon-pill pill-red">🔴 Legal Risk</span>
+        </div>
+        <div class="kpi-card-body">
+          <div class="kpi-stat-number" id="kpiCriticalCount">0</div>
+          <span class="kpi-subtext">Unsupported claims & strict liabilities</span>
+        </div>
+      </div>
+
+      <!-- KPI 3: Warnings -->
+      <div class="kpi-card kpi-card-warning">
+        <div class="kpi-card-header">
+          <span class="kpi-label">Brand Warnings</span>
+          <span class="kpi-icon-pill pill-amber">🟡 Policy</span>
+        </div>
+        <div class="kpi-card-body">
+          <div class="kpi-stat-number" id="kpiWarningCount">0</div>
+          <span class="kpi-subtext">Forbidden words & aggressive urgency</span>
+        </div>
+      </div>
+
+      <!-- KPI 4: Style Suggestions -->
+      <div class="kpi-card kpi-card-advisory">
+        <div class="kpi-card-header">
+          <span class="kpi-label">Style Improvements</span>
+          <span class="kpi-icon-pill pill-blue">🔵 Preferred</span>
+        </div>
+        <div class="kpi-card-body">
+          <div class="kpi-stat-number" id="kpiAdvisoryCount">0</div>
+          <span class="kpi-subtext">Brand-preferred phrasing suggestions</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAIN NAVIGATION TABS -->
+    <nav class="nav-tabs" role="tablist">
+      <button class="nav-tab active" data-tab="audit" role="tab" aria-selected="true">
+        <span class="tab-icon">✍️</span>
+        <span>Content Audit Studio</span>
+      </button>
+      <button class="nav-tab" data-tab="rules" role="tab" aria-selected="false">
+        <span class="tab-icon">⚙️</span>
+        <span>Editable Brand Rules</span>
+        <span class="tab-badge" id="ruleCountBadge">0</span>
+      </button>
+      <button class="nav-tab" data-tab="history" role="tab" aria-selected="false">
+        <span class="tab-icon">📜</span>
+        <span>Revision History</span>
+        <span class="tab-badge" id="revCountBadge">0</span>
+      </button>
+      <button class="nav-tab" data-tab="guidelines" role="tab" aria-selected="false">
+        <span class="tab-icon">📖</span>
+        <span>Guideline Reference</span>
+      </button>
+    </nav>
+
+    <!-- MAIN TAB CONTENTS -->
+    <main class="main-content">
+      
+      <!-- TAB 1: CONTENT AUDIT STUDIO -->
+      <section id="tab-audit" class="tab-pane active">
+        <div class="studio-grid">
+          
+          <!-- LEFT COLUMN: CONTENT EDITOR -->
+          <div class="editor-column card">
+            <div class="card-header">
+              <div class="header-title-block">
+                <h2>Marketing Content Editor</h2>
+                <span id="contentStatusBadge" class="status-pill status-draft">Draft</span>
+              </div>
+
+              <!-- Sample copy dropdown -->
+              <div class="sample-loader">
+                <label for="sampleContentSelect" class="sr-only">Load Sample Copy</label>
+                <div class="select-wrapper">
+                  <select id="sampleContentSelect" class="sample-dropdown">
+                    <option value="" disabled selected>⚡ Load Sample Content...</option>
+                    <option value="highRisk">⚠️ High-Risk Marketing Draft (Multiple Violations)</option>
+                    <option value="moderateRisk">⚖️ Moderate Compliance Draft (Tone Slips)</option>
+                    <option value="compliant">✅ Fully Compliant Press Release</option>
+                    <option value="clear">🧹 Clear Editor</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Content Stats Strip -->
+            <div class="content-stats-strip">
+              <div class="stats-group">
+                <span class="stat-item"><strong id="wordCountDisplay">0</strong> words</span>
+                <span class="stat-divider">•</span>
+                <span class="stat-item"><strong id="charCountDisplay">0</strong> chars</span>
+                <span class="stat-divider">•</span>
+                <span class="stat-item"><strong id="readingTimeDisplay">0</strong> min read</span>
+              </div>
+              <div class="sync-status-group">
+                <span class="sync-dot"></span>
+                <span class="sync-status" id="syncStatusIndicator">Ready</span>
+              </div>
+            </div>
+
+            <!-- Editor Wrapper -->
+            <div class="editor-wrapper">
+              <textarea 
+                id="contentInput" 
+                class="content-textarea" 
+                placeholder="Paste or write your marketing copy, landing page headlines, email draft, or social ad here to check compliance against active brand rules..."
+                spellcheck="true"
+              ></textarea>
+            </div>
+
+            <!-- Editor Actions Bar -->
+            <div class="editor-actions-bar">
+              <div class="left-actions">
+                <button id="analyzeBtn" class="btn btn-primary" title="Run rule-based compliance check">
+                  🔍 Rule Check
+                </button>
+                <button id="geminiCheckBtn" class="btn btn-ai" title="Audit content with Google Gemini 3.5 Flash Copilot">
+                  ✨ Gemini AI Audit
+                </button>
+                <button id="applyAllFixesBtn" class="btn btn-accent" title="Apply all suggested corrections automatically" disabled>
+                  ✨ Apply All Safe Fixes
+                </button>
+                <button id="clearContentBtn" class="btn btn-outline" title="Clear text">
+                  Clear
+                </button>
+                <button id="copyContentBtn" class="btn btn-secondary" title="Copy content to clipboard">
+                  📋 Copy Text
+                </button>
+              </div>
+
+              <div class="workflow-actions">
+                <button id="requestChangesBtn" class="btn btn-warning" title="Flag content and record revision with required changes">
+                  ⚠️ Request Changes
+                </button>
+                <button id="approveContentBtn" class="btn btn-success" title="Approve current content version and log to revision history">
+                  ✅ Approve Content
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- RIGHT COLUMN: COMPLIANCE AUDIT REPORT -->
+          <div class="report-column card">
+            <div class="card-header">
+              <div class="header-title-block">
+                <h2>Compliance Audit Report</h2>
+              </div>
+              <span id="auditTimeDisplay" class="timestamp-label">Not checked yet</span>
+            </div>
+
+            <!-- Score Overview Card -->
+            <div class="score-card">
+              <div class="score-meter-container">
+                <div class="score-ring" id="scoreRing" style="--score-pct: 100;">
+                  <div class="score-ring-inner">
+                    <span id="scoreValue" class="score-number">100</span>
+                    <span class="score-max">/100</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="score-details">
+                <div class="score-verdict" id="scoreVerdict">COMPLIANT</div>
+                <p id="scoreExplanation" class="score-explanation">
+                  Content satisfies brand guidelines with no severe violations detected.
+                </p>
+
+                <!-- Severity Breakdown Pills -->
+                <div class="severity-pills">
+                  <div class="severity-pill pill-critical">
+                    <span class="pill-dot"></span>
+                    <strong id="countCritical">0</strong> Critical
+                  </div>
+                  <div class="severity-pill pill-warning">
+                    <span class="pill-dot"></span>
+                    <strong id="countWarning">0</strong> Warnings
+                  </div>
+                  <div class="severity-pill pill-advisory">
+                    <span class="pill-dot"></span>
+                    <strong id="countAdvisory">0</strong> Suggestions
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Issues Filter Bar -->
+            <div class="issues-filter-bar">
+              <span class="filter-label">Filter:</span>
+              <button class="filter-chip active" data-filter="all">All (<span id="filterAllCount">0</span>)</button>
+              <button class="filter-chip" data-filter="forbidden_phrase">Forbidden (<span id="filterFpCount">0</span>)</button>
+              <button class="filter-chip" data-filter="unsupported_claim">Claims (<span id="filterUcCount">0</span>)</button>
+              <button class="filter-chip" data-filter="tone">Tone (<span id="filterToneCount">0</span>)</button>
+              <button class="filter-chip" data-filter="preferred_phrase">Style (<span id="filterPpCount">0</span>)</button>
+            </div>
+
+            <!-- Issues List Container -->
+            <div id="issuesList" class="issues-list-container">
+              <!-- Dynamically populated or empty state -->
+              <div class="empty-state">
+                <span class="empty-icon">🎉</span>
+                <p class="empty-title">No brand guideline violations detected</p>
+                <p class="empty-subtitle">Paste marketing text or load a sample draft on the left to run deterministic rule verification.</p>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </section>
+
+      <!-- TAB 2: EDITABLE BRAND RULES -->
+      <section id="tab-rules" class="tab-pane">
+        <div class="card">
+          <div class="card-header rules-header">
+            <div>
+              <h2>Brand Governance Rules Configuration</h2>
+              <p class="card-subtext">Customize forbidden terms, claim validation patterns, preferred terminology, and tone filters.</p>
+            </div>
+            <div class="rules-header-buttons">
+              <button id="addRuleBtn" class="btn btn-primary btn-sm">
+                ➕ Add New Rule
+              </button>
+              <button id="resetRulesBtn" class="btn btn-outline btn-sm" title="Revert to default preset rules">
+                🔄 Reset to Preset
+              </button>
+            </div>
+          </div>
+
+          <!-- Rules Sub-Tabs -->
+          <div class="rules-category-tabs">
+            <button class="rules-subtab active" data-ruletype="forbidden">
+              🚫 Forbidden Phrases (<span id="countForbiddenRules">0</span>)
+            </button>
+            <button class="rules-subtab" data-ruletype="claims">
+              ⚖️ Unsupported Claims (<span id="countClaimsRules">0</span>)
+            </button>
+            <button class="rules-subtab" data-ruletype="preferred">
+              💡 Preferred Terminology (<span id="countPreferredRules">0</span>)
+            </button>
+            <button class="rules-subtab" data-ruletype="tone">
+              🎭 Tone & Style Heuristics
+            </button>
+          </div>
+
+          <!-- Subtab 1: Forbidden Phrases Table -->
+          <div id="rules-view-forbidden" class="rules-table-view active">
+            <div class="table-responsive">
+              <table class="rules-table">
+                <thead>
+                  <tr>
+                    <th>Status</th>
+                    <th>Forbidden Phrase</th>
+                    <th>Severity</th>
+                    <th>Brand Rationale</th>
+                    <th>Recommended Alternative</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="forbiddenRulesTableBody">
+                  <!-- Dynamically rendered -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Subtab 2: Unsupported Claims Table -->
+          <div id="rules-view-claims" class="rules-table-view">
+            <div class="table-responsive">
+              <table class="rules-table">
+                <thead>
+                  <tr>
+                    <th>Status</th>
+                    <th>Claim Pattern / Keywords</th>
+                    <th>Severity</th>
+                    <th>Legal / Compliance Rationale</th>
+                    <th>Substantiated Alternative</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="claimsRulesTableBody">
+                  <!-- Dynamically rendered -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Subtab 3: Preferred Phrases Table -->
+          <div id="rules-view-preferred" class="rules-table-view">
+            <div class="table-responsive">
+              <table class="rules-table">
+                <thead>
+                  <tr>
+                    <th>Status</th>
+                    <th>Deprecated Term</th>
+                    <th>Brand-Preferred Phrase</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="preferredRulesTableBody">
+                  <!-- Dynamically rendered -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Subtab 4: Tone & Style Settings -->
+          <div id="rules-view-tone" class="rules-table-view">
+            <div class="tone-settings-panel">
+              <div class="tone-card">
+                <div class="tone-card-info">
+                  <h3>Aggressive Urgency Detection</h3>
+                  <p>Detects transactional pushiness like "ACT NOW", "BUY TODAY OR REGRET", and artificial scarcity.</p>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="toneUrgencyToggle" checked>
+                  <span class="slider round"></span>
+                </label>
+              </div>
+
+              <div class="tone-card">
+                <div class="tone-card-info">
+                  <h3>Excessive Punctuation Checker</h3>
+                  <p>Flags multiple exclamation or question marks (e.g. "!!!", "???") that compromise professional dignity.</p>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="tonePunctuationToggle" checked>
+                  <span class="slider round"></span>
+                </label>
+              </div>
+
+              <div class="tone-card">
+                <div class="tone-card-info">
+                  <h3>Informal Slang & Colloquialisms</h3>
+                  <p>Flags non-professional slang terms such as "wanna", "gonna", "gotta", "ain't", "legit".</p>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="toneSlangToggle" checked>
+                  <span class="slider round"></span>
+                </label>
+              </div>
+
+              <div class="tone-card">
+                <div class="tone-card-info">
+                  <h3>Overuse of Capitalization (Shouting)</h3>
+                  <p>Detects consecutive words in ALL CAPS (excluding approved acronyms like SaaS, SLA, API, ROI).</p>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="toneAllCapsToggle" checked>
+                  <span class="slider round"></span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- TAB 3: REVISION HISTORY -->
+      <section id="tab-history" class="tab-pane">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h2>Audit Trail & Revision History</h2>
+              <p class="card-subtext">Immutable log of content drafts, reviews, approvals, and change requests.</p>
+            </div>
+            <button id="clearHistoryBtn" class="btn btn-outline btn-sm">
+              Clear History
+            </button>
+          </div>
+
+          <div id="revisionsList" class="revisions-container">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 4: GUIDELINE REFERENCE -->
+      <section id="tab-guidelines" class="tab-pane">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h2 id="guidelinePresetTitle">Brand Guideline Reference</h2>
+              <p class="card-subtext" id="guidelinePresetDesc">Enterprise brand voice, tone principles, and regulatory boundaries.</p>
+            </div>
+          </div>
+
+          <div class="guidelines-content">
+            <div class="guideline-section">
+              <h3>🎯 Core Brand Tone Objective</h3>
+              <p id="guidelineTargetTone" class="guideline-box">
+                Authoritative, consultative, trustworthy, and solution-focused.
+              </p>
+            </div>
+
+            <div class="guideline-grid">
+              <div class="guideline-card card-do">
+                <h4>✅ Approved Best Practices (DO)</h4>
+                <ul id="guidelineDoList">
+                  <li>Substantiate claims with specific SLA percentages or verified metrics.</li>
+                  <li>Use customer-centric language emphasizing long-term partnerships.</li>
+                  <li>State technical capabilities transparently and accurately.</li>
+                  <li>Maintain an inviting, respectful, and consultative tone.</li>
+                </ul>
+              </div>
+
+              <div class="guideline-card card-dont">
+                <h4>❌ Strictly Prohibited (DON'T)</h4>
+                <ul id="guidelineDontList">
+                  <li>Never make absolute guarantees (e.g. "100% risk-free", "world's best").</li>
+                  <li>Avoid high-pressure urgency ("ACT NOW OR REGRET", "LIMITED TIME").</li>
+                  <li>Do not use depreciative terms like "cheap" or dismissive colloquialisms.</li>
+                  <li>Never promise specific financial or medical outcomes without disclaimers.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="app-footer">
+      <div class="footer-left">
+        <span class="footer-brand">BrandGuard AI &copy; 2026</span>
+        <span class="footer-sep">•</span>
+        <span>Deterministic Rule Governance</span>
+        <span class="footer-sep">•</span>
+        <span>Local Execution Only</span>
+      </div>
+      <div class="footer-right">
+        <span class="footer-badge">Zero API Keys Required</span>
+      </div>
+    </footer>
+
+    <!-- MODAL: ADD / EDIT RULE -->
+    <div id="ruleModal" class="modal-backdrop">
+      <div class="modal-dialog">
+        <div class="modal-header">
+          <h3 id="ruleModalTitle">Add New Brand Rule</h3>
+          <button id="closeRuleModalBtn" class="btn-close" aria-label="Close modal">&times;</button>
+        </div>
+        <form id="ruleForm" class="modal-body">
+          <div class="form-group">
+            <label for="ruleCategoryInput">Rule Category:</label>
+            <select id="ruleCategoryInput" class="form-control" required>
+              <option value="forbidden">🚫 Forbidden Phrase</option>
+              <option value="claims">⚖️ Unsupported Claim Pattern</option>
+              <option value="preferred">💡 Preferred Terminology</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="ruleTargetInput" id="ruleTargetLabel">Target Phrase / Pattern:</label>
+            <input type="text" id="ruleTargetInput" class="form-control" placeholder="e.g. cheap, 100% guaranteed" required>
+            <small class="form-hint" id="ruleTargetHint">Matches case-insensitively with word boundaries.</small>
+          </div>
+
+          <div class="form-group" id="ruleSeverityGroup">
+            <label for="ruleSeverityInput">Severity Level:</label>
+            <select id="ruleSeverityInput" class="form-control">
+              <option value="critical">🔴 Critical (Significant compliance risk, -22 pts)</option>
+              <option value="warning" selected>🟡 Warning (Brand guideline breach, -11 pts)</option>
+              <option value="advisory">🔵 Advisory (Style suggestion, -5 pts)</option>
+            </select>
+          </div>
+
+          <div class="form-group" id="ruleExplanationGroup">
+            <label for="ruleExplanationInput">Explanation & Guideline Rationale:</label>
+            <textarea id="ruleExplanationInput" class="form-control" rows="2" placeholder="Why is this phrase or claim restricted?"></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="ruleReplacementInput">Recommended Replacement / Preferred Alternative:</label>
+            <input type="text" id="ruleReplacementInput" class="form-control" placeholder="e.g. cost-effective, designed for high reliability">
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" id="cancelRuleModalBtn" class="btn btn-outline">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save Rule</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- MODAL: APPROVE CONTENT -->
+    <div id="approveModal" class="modal-backdrop">
+      <div class="modal-dialog">
+        <div class="modal-header">
+          <h3>✅ Approve Content for Publication</h3>
+          <button id="closeApproveModalBtn" class="btn-close" aria-label="Close modal">&times;</button>
+        </div>
+        <form id="approveForm" class="modal-body">
+          <p class="modal-desc">
+            You are approving this content version. A verified snapshot with its compliance score will be preserved in the revision history.
+          </p>
+
+          <div class="form-group">
+            <label for="approverNameInput">Reviewer / Approver Name:</label>
+            <input type="text" id="approverNameInput" class="form-control" value="Marketing Lead" required>
+          </div>
+
+          <div class="form-group">
+            <label for="approverNotesInput">Approval Sign-Off Notes (Optional):</label>
+            <textarea id="approverNotesInput" class="form-control" rows="2" placeholder="e.g. Reviewed legal disclosures and claims. Approved for Q3 campaign launch."></textarea>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" id="cancelApproveModalBtn" class="btn btn-outline">Cancel</button>
+            <button type="submit" class="btn btn-success">Confirm Approval</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- MODAL: REQUEST CHANGES -->
+    <div id="requestChangesModal" class="modal-backdrop">
+      <div class="modal-dialog">
+        <div class="modal-header">
+          <h3>⚠️ Request Content Changes</h3>
+          <button id="closeChangesModalBtn" class="btn-close" aria-label="Close modal">&times;</button>
+        </div>
+        <form id="requestChangesForm" class="modal-body">
+          <p class="modal-desc">
+            Specify required revisions before this content can be approved. This revision will be marked as "Changes Requested" in the audit trail.
+          </p>
+
+          <div class="form-group">
+            <label for="reviewerNameInput">Reviewer Name:</label>
+            <input type="text" id="reviewerNameInput" class="form-control" value="Brand Governance Auditor" required>
+          </div>
+
+          <div class="form-group">
+            <label for="reviewerFeedbackInput">Required Changes & Feedback:</label>
+            <textarea id="reviewerFeedbackInput" class="form-control" rows="3" placeholder="e.g. Please soften superlative claim in paragraph 2 and replace 'cheap' with 'cost-effective'." required></textarea>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" id="cancelChangesModalBtn" class="btn btn-outline">Cancel</button>
+            <button type="submit" class="btn btn-warning">Submit Change Request</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- MODAL: REVISION DIFF VIEWER -->
+    <div id="diffModal" class="modal-backdrop">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-header">
+          <h3 id="diffModalTitle">Revision Details</h3>
+          <button id="closeDiffModalBtn" class="btn-close" aria-label="Close modal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="diff-metadata" id="diffMetadata"></div>
+          <div class="diff-tab-buttons">
+            <button id="diffViewSnapshotBtn" class="btn btn-sm btn-primary">Snapshot Content</button>
+            <button id="diffViewCompareBtn" class="btn btn-sm btn-outline">Visual Comparison vs Current</button>
+          </div>
+          <div class="diff-content-box" id="snapshotBox">
+            <h4>Snapshot Content:</h4>
+            <pre id="diffContentDisplay" class="diff-text"></pre>
+          </div>
+          <div class="diff-content-box" id="compareBox" style="display: none;">
+            <h4>Diff Comparison (Red = In Snapshot Only, Green = In Current Editor):</h4>
+            <div id="diffCompareDisplay" class="diff-text diff-visual-compare"></div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" id="closeDiffBtn" class="btn btn-outline">Close</button>
+            <button type="button" id="restoreFromDiffBtn" class="btn btn-primary">Restore this Snapshot to Editor</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION CONTAINER -->
+    <div id="toastContainer" class="toast-container"></div>
+
+  </div>
+
+  <!-- SCRIPT INCLUSIONS -->
+  <script src="lib/checker.js"></script>
+  <script src="lib/presets.js"></script>
+  <script src="js/rulesManager.js"></script>
+  <script src="js/history.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

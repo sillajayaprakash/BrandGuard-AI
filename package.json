@@ -1,0 +1,22 @@
+{
+  "name": "brandguard-ai",
+  "version": "1.0.0",
+  "description": "Deterministic Brand Governance & Content Compliance Web Application",
+  "main": "server.js",
+  "scripts": {
+    "start": "node --env-file-if-exists=.env server.js",
+    "test": "node test/checker.test.js && node test/gemini.test.js"
+  },
+  "keywords": [
+    "brand-governance",
+    "compliance",
+    "content-checker",
+    "rule-based",
+    "marketing"
+  ],
+  "author": "BrandGuard AI Team",
+  "license": "MIT",
+  "dependencies": {
+    "@google/genai": "^3.0.0"
+  }
+}
