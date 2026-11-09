@@ -1,14 +1,14 @@
 BrandGuard AI 🛡️
 
-AI-assisted brand compliance and content governance**
+AI-assisted brand compliance and content governance
 
 BrandGuard AI helps marketing teams review content against brand guidelines before publication. It combines deterministic rule-based checks with Google Gemini AI analysis to identify potential brand violations, unsupported claims, terminology inconsistencies, and tone issues.
 
 🚀 Live Demo
 
-- Live application:** https://brandguard-ai-22g4.onrender.com
-- Source repository:** https://github.com/sillajayaprakash/BrandGuard-AI
-- Health check:** https://brandguard-ai-22g4.onrender.com/api/health
+- Live application: https://brandguard-ai-22g4.onrender.com
+- Source repository: https://github.com/sillajayaprakash/BrandGuard-AI
+- Health check: https://brandguard-ai-22g4.onrender.com/api/health
 
  ✨ Features
 
