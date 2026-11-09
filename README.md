@@ -1,163 +1,170 @@
-# BrandGuard AI 🛡️
+BrandGuard AI 🛡️
 
-> **Deterministic Brand Governance & Content Compliance Web Application**  
-> *Version 1.0 — Rule-Based Analysis Engine (No Live AI / Zero API Keys Required)*
+AI-assisted brand compliance and content governance**
 
-BrandGuard AI is a beginner-friendly, responsive web application built to govern marketing copy, sales drafts, and press releases against brand voice rules, legal claim regulations, and terminology guidelines.
+BrandGuard AI helps marketing teams review content against brand guidelines before publication. It combines deterministic rule-based checks with Google Gemini AI analysis to identify potential brand violations, unsupported claims, terminology inconsistencies, and tone issues.
 
----
+🚀 Live Demo
 
-## ⚡ Key Highlights & Architecture
+- Live application:** https://brandguard-ai-22g4.onrender.com
+- Source repository:** https://github.com/sillajayaprakash/BrandGuard-AI
+- Health check:** https://brandguard-ai-22g4.onrender.com/api/health
 
-- **Dual-Engine Governance:**
-  1. **Deterministic Rule Engine (Local):** 100% offline-safe regex heuristics and brand dictionary matching. Zero API keys required.
-  2. **Google Gemini 2.5 Flash Copilot (Optional AI):** Deep semantic evaluation against brand guidelines using the official `@google/genai` SDK.
-- **Strict Security & Privacy:**
-  - API keys are read solely from `process.env.GEMINI_API_KEY`.
-  - Keys are **never** exposed in frontend code, browser responses, logs, or Git.
-  - Automatically sanitizes error messages and redacts key patterns.
-- **Fact-Checking & Human Review:**
-  - Gemini copilot is instructed not to invent facts.
-  - Uncertain statistics or unverified performance claims are flagged for human review.
-- **Dynamic Scoring & Human Approval:**
-  - Real-time compliance scoring (0–100%) computed dynamically from detected violations and severity weights—never hard-coded.
-  - Human sign-off workflow (`Approve Content` and `Request Changes`) with immutable revision snapshots.
+ ✨ Features
 
----
+ 1. Brand Profiles
+- ApexTech — B2B SaaS
+- NovaPay — FinTech
+- VitaLife — Health
 
-## 🚀 Quick Start Guide
+ 2. Rule-Based Brand Compliance
+Checks content against configured brand guidelines, including:
+- Forbidden phrases
+- Unsupported promotional claims
+- Preferred terminology
+- Tone and writing-style rules
 
-### Prerequisites
-- Node.js (v18+ recommended; tested on v24)
-- Any modern web browser (Chrome, Edge, Firefox, Safari)
+ 3. Gemini AI Audit
+Uses Google's Gemini AI (`gemini-3.5-flash`) for contextual content analysis.
 
-### 1. (Optional) Configure Gemini API Key
-To enable the optional Gemini 2.5 Flash copilot:
-1. Copy `.env.example` to `.env`:
-   ```bash
-   cp .env.example .env
-   ```
-2. Open `.env` and set your key:
-   ```env
-   GEMINI_API_KEY=your_actual_key_here
-   ```
-*(Note: BrandGuard AI works 100% locally with the deterministic engine without this key!)*
+The AI audit provides:
+- Compliance assessment
+- Issue severity
+- Explanations of detected problems
+- Suggested corrections
+- Human-review indicators
 
-### 2. Start the Server
-Open your terminal inside the project directory:
+ 4. Compliance Scoring
+Displays a compliance score out of 100 based on detected issues and their severity.
+
+ 5. Suggested Fixes
+- Apply individual suggested corrections.
+- Apply all available safe fixes.
+- Review the updated content.
+
+6. Human Approval Workflow
+- Approve Content
+- Request Changes
+- Maintain revision history
+- Restore previous revisions
+
+ 7. Audit History
+Keeps review snapshots and supports exporting an audit report in Markdown format.
+
+ 🧰 Technology Stack
+
+| Component | Technology |
+|---|---|
+| Backend | Node.js |
+| Frontend | HTML, CSS, JavaScript |
+| Rule engine | Custom deterministic checker |
+| AI integration | Google Gemini API |
+| Gemini SDK | `@google/genai` |
+| Hosting | Render |
+| Version control | Git and GitHub |
+
+🏗️ Project Structure
+
+```text
+BrandGuard-AI/
+├── public/
+│   ├── index.html
+│   ├── css/
+│   │   └── styles.css
+│   └── js/
+│       └── app.js
+├── lib/
+│   ├── checker.js
+│   ├── geminiChecker.js
+│   └── presets.js
+├── server.js
+├── package.json
+├── .gitignore
+└── .env.example
+```
+
+ ⚙️ Run Locally
+
+Prerequisites
+- Node.js 24 or compatible version
+- npm
+- Google Gemini API key for AI audit functionality
+
+ 1. Clone the repository
+
+```bash
+git clone https://github.com/sillajayaprakash/BrandGuard-AI.git
+cd BrandGuard-AI
+```
+
+2. Install dependencies
+
+```bash
+npm install
+```
+
+ 3. Configure environment variables
+
+Create a `.env` file in the project root:
+
+```env
+GEMINI_API_KEY=your_gemini_api_key
+```
+
+Keep your actual API key private. Never commit `.env` to GitHub.
+
+4. Start the application
+
 ```bash
 npm start
 ```
-*(Or alternatively: `node server.js`)*
 
-### 3. Open in Your Browser
-Once started, open your web browser and navigate to:
-```
+Open:
+
+```text
 http://localhost:3000
 ```
 
-### 4. Run Automated Unit & Integration Tests
-To verify all deterministic detection rules and Gemini integration handling:
-```bash
-npm test
-```
-*(Runs 14 automated unit test suites covering deterministic rules, forbidden phrases, unsupported claims, tone analysis, dynamic score calculation, Gemini error sanitization, timeout handling, structured output parsing, and fact-check flagging)*
+🔌 API Endpoints
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| GET | `/api/health` | Check server status and AI configuration |
+| POST | `/api/check` | Submit content for compliance analysis |
+
+🧪 Testing
+
+The project was tested using rule-checking tests, server endpoint checks, and live Gemini API verification.
+
+Reported development test results:
+- Automated test suite: 14/14 passing.
+- Gemini live API verification: successful.
+- Clean sample content: Rule Check 100/100.
+- Clean sample content: Gemini AI Audit 95/100.
+- High-risk sample content: Gemini AI Audit 0/100.
+
+These are observed test results for sample inputs, not guarantees for every possible content submission.
+
+ 🔐 Security
+
+- Gemini API credentials are stored in environment variables.
+- `.env` is excluded from Git using `.gitignore`.
+- The deployed Render service uses private environment configuration.
+- AI-generated suggestions should be reviewed by a human before publication.
+
+🛣️ Future Improvements — Round 3
+
+1. Visual and accessibility compliance: Logo checks, brand colour validation, image alt-text review, and accessibility guidance.
+2. Factual claim verification: Evidence-backed checks against approved sources and references.
+3. Team collaboration: Multi-user workspaces, reviewer roles, comments, advanced revision comparisons, and downloadable PDF audit reports.
+
+👨‍💻 Project Information
+
+- Project: BrandGuard AI
+- **Hackathon:** CodeTitans India 2026
+- **Team:** DEBUGGER
+- **Developer:** Silla Jayaprakash
 
 ---
 
-## 🎯 Features Walkthrough
-
-### 1. Marketing Content Editor
-- Large, responsive text area to paste or write email drafts, landing page headlines, or ad copy.
-- Live counters for **Word Count**, **Character Count**, and **Estimated Reading Time**.
-- 1-click **Sample Content Loader** to test:
-  - ⚠️ *High-Risk Marketing Draft* (contains multiple critical violations like "world's best", "100% guaranteed", "cheap", "never fails", urgency shouting).
-  - ⚖️ *Moderate Compliance Draft* (contains minor tone slips and preferred phrasing mismatches).
-  - ✅ *Fully Compliant Press Release* (passes all brand governance checks).
-
-### 2. Editable Brand Rules Engine
-Navigate to the **⚙️ Editable Brand Rules** tab to inspect and customize rules across 4 categories:
-- **🚫 Forbidden Phrases:** Ban words like "cheap", "foolproof", "secret sauce", or "miracle".
-- **⚖️ Unsupported Claims:** Flag legally risky claims using regex patterns (e.g. `100% guaranteed`, `zero risk`, `world's best`).
-- **💡 Preferred Terminology:** Automatically suggest brand-approved terms (e.g., replace "users" with "team members", or "cheap" with "cost-effective").
-- **🎭 Tone & Style Heuristics:** Toggle checks for aggressive urgency ("ACT NOW"), multiple exclamation marks ("!!!"), informal slang ("wanna", "gonna"), and uppercase shouting.
-- **Add / Toggle / Delete:** Add custom rules with specific severities and explanations, or reset back to default preset guidelines with one click.
-
-### 3. Deterministic Content Checker
-- Scans text character-by-character, identifying exact line numbers and column positions.
-- Flags each issue with one of three severity levels:
-  - 🔴 **CRITICAL (-22 pts):** Severe legal liability, unsubstantiated guarantees, or strict regulatory violations.
-  - 🟡 **WARNING (-11 pts):** Brand guideline breaches, high-pressure urgency, or negative brand perception.
-  - 🔵 **ADVISORY (-5 pts):** Stylistic improvements and preferred terminology recommendations.
-
-### 4. Dynamic Compliance Score & Status
-- Computes an exact compliance score out of 100 based on detected issue density.
-- Dynamic Status:
-  - `90–100`: **COMPLIANT** (Emerald) — Ready for publication.
-  - `70–89`: **REVISION RECOMMENDED** (Amber) — Minor/moderate issues to address.
-  - `< 70`: **NON-COMPLIANT** (Crimson) — Prohibited terms or critical unsupported claims present.
-
-### 5. Detailed Audit Findings & Remediations
-- Filter issues by category: **All**, **Forbidden Phrases**, **Unsupported Claims**, **Tone**, or **Preferred Style**.
-- Each issue card shows:
-  - Exact snippet in context.
-  - Line and column location.
-  - Explanation of why it violates brand policy.
-  - Recommended replacement text.
-- One-click **✨ Apply Fix** button on each card to replace the flagged text in-place.
-- Global **✨ Apply All Safe Fixes** button to resolve all actionable issues in one batch.
-
-### 6. Approval & Change Request Governance Workflow
-- **✅ Approve Content:** When content meets standards, sign off with reviewer name and approval notes. Creates an immutable snapshot in the audit trail.
-- **⚠️ Request Changes:** If content fails compliance, submit specific reviewer feedback. Marks the version as `Changes Requested` in the audit log.
-
-### 7. Revision History & Audit Trail
-- Inspect previous versions, scores, status badges, timestamps, and reviewer notes in the **📜 Revision History** tab.
-- Click **👁️ View Snapshot** to inspect full revision text.
-- Click **↩️ Restore** to revert the editor to any past version.
-- Download a timestamped **📥 Export Audit Certificate** in Markdown format.
-
----
-
-## 🏢 Included Brand Guideline Presets
-
-Switch guidelines at any time using the header dropdown:
-1. **🏢 ApexTech B2B SaaS:** Enterprise software voice emphasizing reliability, consultation, and technical precision.
-2. **💳 NovaPay FinTech & Payments:** Strict financial regulations, FTC/FinCEN compliance, zero tolerance for "free money" or "guaranteed returns".
-3. **🌿 VitaLife Health & Wellness:** Dietary supplement compliance, FDA/FTC claim restrictions (strictly bans disease "cure" or "miracle" promises).
-
----
-
-## 🛡️ Security & Privacy Note
-
-- **No Secrets or API Keys:** Does not require, store, or expose any API keys or secrets.
-- **Local Data Processing:** Input marketing content is processed locally and never transmitted to external third-party servers.
-
----
-
-## 🧪 Project Structure
-
-```
-BrandGuard-AI/
-├── .env.example           # Example environment template (no real keys)
-├── .gitignore             # Strict ignore rules for .env and node_modules
-├── package.json           # Scripts and dependencies (@google/genai)
-├── server.js              # Native Node.js HTTP server & REST APIs (/api/check, /api/ai-check)
-├── README.md              # Documentation and guide
-├── lib/
-│   ├── checker.js         # Deterministic Brand Governance Engine (Unchanged, 100% offline)
-│   ├── geminiChecker.js   # Google Gemini 2.5 Flash Governance Module (@google/genai SDK)
-│   └── presets.js         # Brand guidelines & sample test marketing copies
-├── test/
-│   ├── checker.test.js    # 8 automated deterministic unit tests
-│   └── gemini.test.js     # 6 automated Gemini failure & mock integration tests
-└── public/
-    ├── index.html         # Responsive semantic UI layout with KPI overview & AI audit trigger
-    ├── css/
-    │   └── styles.css     # Clean enterprise SaaS design system (Light/Dark mode)
-    └── js/
-        ├── app.js         # UI controller, live rule analysis & Gemini AI workflow
-        ├── rulesManager.js# Interactive brand rules manager & CRUD
-        └── history.js     # Revision history tracking & snapshots
-```
-
+**BrandGuard AI — Check your content. Protect your brand.**
