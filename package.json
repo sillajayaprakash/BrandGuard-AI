@@ -5,7 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node --env-file-if-exists=.env server.js",
-    "test": "node test/checker.test.js && node test/gemini.test.js"
+    "test": "node test/checker.test.js && node test/gemini.test.js && node test/claimVerifier.test.js"
   },
   "keywords": [
     "brand-governance",

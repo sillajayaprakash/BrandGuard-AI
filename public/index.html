@@ -147,6 +147,10 @@
         <span>Revision History</span>
         <span class="tab-badge" id="revCountBadge">0</span>
       </button>
+      <button class="nav-tab" data-tab="claims" role="tab" aria-selected="false">
+        <span class="tab-icon">🔎</span>
+        <span>Factual Claims</span>
+      </button>
       <button class="nav-tab" data-tab="guidelines" role="tab" aria-selected="false">
         <span class="tab-icon">📖</span>
         <span>Guideline Reference</span>
@@ -474,7 +478,99 @@
         </div>
       </section>
 
-      <!-- TAB 4: GUIDELINE REFERENCE -->
+      <!-- TAB 4: FACTUAL CLAIM VERIFICATION (separate from compliance scoring) -->
+      <section id="tab-claims" class="tab-pane">
+        <div class="claims-disclaimer" role="note">
+          <strong>Evidence-based assistance only.</strong>
+          This tool compares marketing claims against text you paste. It is not guaranteed legal or factual verification, it does not browse the web, and it never approves content for publication. A human reviewer must inspect every result.
+        </div>
+
+        <div class="studio-grid">
+          <div class="editor-column card">
+            <div class="card-header">
+              <div class="header-title-block">
+                <h2>Marketing Content &amp; Evidence</h2>
+                <span class="status-pill status-draft">Human review required</span>
+              </div>
+              <div class="sample-loader">
+                <label for="claimsSampleSelect" class="sr-only">Load sample claim pack</label>
+                <div class="select-wrapper">
+                  <select id="claimsSampleSelect" class="sample-dropdown">
+                    <option value="" disabled selected>⚡ Load Sample Pack...</option>
+                    <option value="mixed">Mixed: supported, contradicted, unverified</option>
+                    <option value="none">Claims with no evidence</option>
+                    <option value="clear">🧹 Clear form</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="claimsContentInput">Marketing content to verify</label>
+              <textarea id="claimsContentInput" class="content-textarea claims-textarea" placeholder="Paste marketing copy containing factual claims (metrics, rankings, outcomes, dates)..."></textarea>
+            </div>
+
+            <div class="claims-evidence-header">
+              <h3>Evidence sources</h3>
+              <button type="button" id="addEvidenceBtn" class="btn btn-primary btn-sm">➕ Add source</button>
+            </div>
+            <p class="card-subtext">Paste source text. Optional URLs are stored as references only and are never fetched by the server.</p>
+            <div id="evidenceSourcesList" class="evidence-sources-list"></div>
+
+            <div class="editor-actions-bar claims-actions-bar">
+              <button type="button" id="verifyClaimsBtn" class="btn btn-ai">✨ Verify Claims with Gemini</button>
+              <button type="button" id="clearClaimsBtn" class="btn btn-outline">Clear</button>
+            </div>
+          </div>
+
+          <div class="report-column card">
+            <div class="card-header">
+              <div class="header-title-block">
+                <h2>Claim Verification Report</h2>
+              </div>
+              <span id="claimsAuditTime" class="timestamp-label">Not checked yet</span>
+            </div>
+
+            <div class="claims-summary-pills" id="claimsSummaryPills">
+              <div class="severity-pill pill-advisory"><span class="pill-dot"></span><strong id="claimsTotalCount">0</strong> Claims</div>
+              <div class="severity-pill pill-supported"><span class="pill-dot"></span><strong id="claimsSupportedCount">0</strong> Supported</div>
+              <div class="severity-pill pill-contradicted"><span class="pill-dot"></span><strong id="claimsContradictedCount">0</strong> Contradicted</div>
+              <div class="severity-pill pill-unverified"><span class="pill-dot"></span><strong id="claimsUnverifiedCount">0</strong> Unverified</div>
+            </div>
+
+            <div id="claimsResultsList" class="issues-list-container claims-results-list">
+              <div class="empty-state">
+                <span class="empty-icon">🔎</span>
+                <p class="empty-title">No claims verified yet</p>
+                <p class="empty-subtitle">Paste marketing content and at least one evidence source, then run verification. Results stay in this tab and do not change the compliance score.</p>
+              </div>
+            </div>
+
+            <div class="human-review-panel" id="claimsReviewPanel">
+              <h3>Human review (required)</h3>
+              <p class="card-subtext">Recording a review documents that a person inspected the AI output. It does <strong>not</strong> approve marketing content in Content Audit Studio.</p>
+              <div class="form-group">
+                <label for="claimsReviewerName">Reviewer name</label>
+                <input type="text" id="claimsReviewerName" class="form-control" value="Brand Governance Auditor">
+              </div>
+              <div class="form-group">
+                <label for="claimsReviewNotes">Review notes</label>
+                <textarea id="claimsReviewNotes" class="form-control" rows="2" placeholder="What still needs substantiation? Which claims can a human accept based on the pasted evidence?"></textarea>
+              </div>
+              <label class="claims-review-check">
+                <input type="checkbox" id="claimsReviewConfirm">
+                I reviewed these AI classifications and understand they are not a publication approval.
+              </label>
+              <div class="editor-actions-bar">
+                <button type="button" id="recordClaimsReviewBtn" class="btn btn-warning" disabled>Record human review</button>
+              </div>
+              <p id="claimsReviewStatus" class="claims-review-status">Review status: pending human review</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 5: GUIDELINE REFERENCE -->
       <section id="tab-guidelines" class="tab-pane">
         <div class="card">
           <div class="card-header">
@@ -682,6 +778,7 @@
   <script src="lib/presets.js"></script>
   <script src="js/rulesManager.js"></script>
   <script src="js/history.js"></script>
+  <script src="js/claims.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

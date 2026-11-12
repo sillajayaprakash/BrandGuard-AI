@@ -40,6 +40,7 @@ const url = require('node:url');
 
 const checker = require('./lib/checker.js');
 const geminiChecker = require('./lib/geminiChecker.js');
+const claimVerifier = require('./lib/claimVerifier.js');
 const { PRESETS, SAMPLE_CONTENTS } = require('./lib/presets.js');
 
 const PORT = parseInt(process.env.PORT, 10) || 3000;
@@ -171,6 +172,21 @@ const server = http.createServer(async (req, res) => {
         const statusCode = result.success
           ? 200
           : (result.code === 'MISSING_API_KEY' ? 400 : (result.code === 'TIMEOUT' ? 504 : 502));
+
+        return sendJson(res, statusCode, result);
+      }
+
+      // 3c. Factual Claim Verification (separate from compliance scoring)
+      if (pathname === '/api/verify-claims' && method === 'POST') {
+        const body = await parseBody(req);
+        const result = await claimVerifier.verifyClaims({
+          content: body.content || body.text || '',
+          evidenceSources: body.evidenceSources || body.sources || []
+        });
+
+        const statusCode = result.success
+          ? 200
+          : (result.code === 'MISSING_API_KEY' || result.code === 'INVALID_INPUT' ? 400 : (result.code === 'TIMEOUT' ? 504 : 502));
 
         return sendJson(res, statusCode, result);
       }
