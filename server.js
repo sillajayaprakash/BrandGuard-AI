@@ -41,6 +41,7 @@ const url = require('node:url');
 const checker = require('./lib/checker.js');
 const geminiChecker = require('./lib/geminiChecker.js');
 const claimVerifier = require('./lib/claimVerifier.js');
+const visualChecker = require('./lib/visualChecker.js');
 const { PRESETS, SAMPLE_CONTENTS } = require('./lib/presets.js');
 
 const PORT = parseInt(process.env.PORT, 10) || 3000;
@@ -189,6 +190,79 @@ const server = http.createServer(async (req, res) => {
           : (result.code === 'MISSING_API_KEY' || result.code === 'INVALID_INPUT' ? 400 : (result.code === 'TIMEOUT' ? 504 : 502));
 
         return sendJson(res, statusCode, result);
+      }
+
+      // 3d. Visual Brand & Accessibility Check
+      if (pathname === '/api/visual-check' && method === 'POST') {
+        const contentType = req.headers['content-type'] || '';
+        if (!contentType.includes('multipart/form-data')) {
+          return sendJson(res, 400, { success: false, code: 'INVALID_CONTENT_TYPE', error: 'Expected multipart/form-data' });
+        }
+
+        const boundary = contentType.match(/boundary=([^;]+)/);
+        if (!boundary) {
+          return sendJson(res, 400, { success: false, code: 'MISSING_BOUNDARY', error: 'Missing multipart boundary' });
+        }
+
+        const chunks = [];
+        for await (const chunk of req) {
+          chunks.push(chunk);
+        }
+        const buffer = Buffer.concat(chunks);
+        const body = buffer.toString('binary');
+        const boundaryStr = `--${boundary[1]}`;
+        const parts = body.split(boundaryStr);
+
+        let htmlContent = '';
+        let presetId = 'apexTech';
+
+        for (const part of parts) {
+          if (!part.includes('Content-Disposition')) continue;
+          const headerEnd = part.indexOf('\r\n\r\n');
+          if (headerEnd === -1) continue;
+          const headers = part.slice(0, headerEnd);
+          const content = part.slice(headerEnd + 4).replace(/\r\n--$/, '').replace(/\r\n$/, '');
+
+          if (headers.includes('name="html"')) {
+            htmlContent = content;
+          } else if (headers.includes('name="preset"')) {
+            presetId = content;
+          }
+        }
+
+        if (!htmlContent.trim()) {
+          return sendJson(res, 400, { success: false, code: 'MISSING_HTML', error: 'HTML content is required' });
+        }
+
+        if (htmlContent.length > visualChecker.MAX_HTML_CHARS) {
+          return sendJson(res, 400, { success: false, code: 'HTML_TOO_LARGE', error: `HTML exceeds ${visualChecker.MAX_HTML_CHARS} character limit` });
+        }
+
+        const preset = PRESETS[presetId] || PRESETS.apexTech;
+
+        const result = await visualChecker.analyzeVisual({
+          html: htmlContent,
+          preset
+        });
+
+        if (!result.success) {
+          const statusMap = {
+            'MISSING_API_KEY': 503,
+            'TIMEOUT': 504,
+            'RATE_LIMIT': 429,
+            'SERVICE_UNAVAILABLE': 503,
+            'AUTH_ERROR': 401,
+            'MODEL_NOT_FOUND': 500,
+            'PARSE_ERROR': 500,
+            'EMPTY_RESPONSE': 500
+          };
+          return sendJson(res, statusMap[result.code] || 500, result);
+        }
+
+        return sendJson(res, 200, {
+          success: true,
+          ...result
+        });
       }
 
       // 4. Batch Auto-fix

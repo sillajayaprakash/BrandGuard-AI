@@ -12,7 +12,7 @@
   --bg-surface: #ffffff;
   --bg-surface-alt: #f1f5f9;
   --bg-surface-hover: #f8fafc;
-  
+
   --border-subtle: #e2e8f0;
   --border-strong: #cbd5e1;
   --border-focus: #3b82f6;
@@ -2012,5 +2012,402 @@ input:checked + .slider:before {
   .evidence-source-top {
     flex-direction: column;
     align-items: flex-start;
+  }
+}
+
+/* -------------------------------------------------------------
+   VISUAL BRAND & ACCESSIBILITY CHECKER
+------------------------------------------------------------- */
+.visual-disclaimer {
+  background: var(--advisory-bg);
+  border: 1px solid var(--advisory-border);
+  color: var(--text-secondary);
+  border-radius: var(--radius-md);
+  padding: 0.9rem 1.1rem;
+  margin-bottom: 1.25rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.visual-textarea {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  line-height: 1.6;
+  min-height: 420px;
+}
+
+.visual-stats-strip {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.55rem 0.85rem;
+  background-color: var(--bg-surface-alt);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.85rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.visual-stats-strip .stat-item strong {
+  color: var(--text-primary);
+}
+
+.visual-actions-bar {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.visual-score-card {
+  margin-bottom: 1.25rem;
+}
+
+.visual-score-meter-container {
+  display: flex;
+  align-items: center;
+  gap: 1.35rem;
+  padding: 1.25rem;
+  background-color: var(--bg-surface-alt);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.visual-score-details {
+  flex: 1;
+}
+
+.visual-severity-summary {
+  display: flex;
+  gap: 2rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+}
+
+.visual-category-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.visual-category-group h4 {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.human-review-note {
+  font-size: 0.8rem;
+  color: var(--warning);
+  background-color: var(--warning-bg);
+  border: 1px solid var(--warning-border);
+  padding: 0.4rem 0.75rem;
+  border-radius: var(--radius-sm);
+  margin-top: 0.5rem;
+}
+
+.visual-filters {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 1rem;
+  overflow-x: auto;
+}
+
+.visual-filters .filter-chip {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.6rem;
+}
+
+.brand-palette-reference {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.brand-palette-reference h3 {
+  font-size: 0.9rem;
+  font-weight: 800;
+  margin-bottom: 1rem;
+  color: var(--text-primary);
+}
+
+.palette-swatches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 0.75rem;
+}
+
+.palette-swatch {
+  position: relative;
+  height: 60px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 0.5rem;
+  box-shadow: var(--shadow-xs);
+}
+
+.palette-swatch:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+  transition: all var(--transition-fast);
+}
+
+.swatch-label {
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.1rem;
+}
+
+.swatch-value {
+  font-size: 0.7rem;
+  font-family: var(--font-mono);
+  font-weight: 600;
+}
+
+.palette-empty {
+  color: var(--text-tertiary);
+  font-size: 0.85rem;
+  text-align: center;
+  padding: 2rem;
+}
+
+/* Visual Issue Cards */
+.visual-issues-list .issue-card {
+  padding: 1rem;
+}
+
+.visual-issues-list .issue-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.visual-issues-list .issue-main {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.visual-issues-list .issue-type-icon {
+  font-size: 1rem;
+}
+
+.visual-issues-list .issue-category {
+  font-size: 0.775rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+}
+
+.engine-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.engine-badge.det {
+  background-color: var(--bg-surface-alt);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+}
+
+.engine-badge.ai {
+  background-color: var(--brand-violet-light);
+  color: var(--brand-violet);
+  border: 1px solid var(--brand-violet-border);
+}
+
+.review-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  background-color: var(--warning-bg);
+  color: var(--warning);
+  border: 1px solid var(--warning-border);
+}
+
+.visual-issues-list .issue-severity {
+  font-size: 0.7rem;
+  font-weight: 800;
+  padding: 0.15rem 0.5rem;
+  border-radius: 9999px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.visual-issues-list .issue-severity.pill-critical {
+  background-color: var(--critical-bg);
+  color: var(--critical);
+  border: 1px solid var(--critical-border);
+}
+
+.visual-issues-list .issue-severity.pill-warning {
+  background-color: var(--warning-bg);
+  color: var(--warning);
+  border: 1px solid var(--warning-border);
+}
+
+.visual-issues-list .issue-severity.pill-advisory {
+  background-color: var(--advisory-bg);
+  color: var(--advisory);
+  border: 1px solid var(--advisory-border);
+}
+
+.visual-issues-list .issue-confidence {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  background-color: var(--bg-surface-alt);
+  padding: 0.15rem 0.5rem;
+  border-radius: 9999px;
+  border: 1px solid var(--border-subtle);
+}
+
+.visual-issues-list .issue-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.visual-issues-list .issue-explanation {
+  font-size: 0.825rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.visual-issues-list .issue-suggestion {
+  font-size: 0.825rem;
+  color: var(--text-primary);
+  background-color: var(--bg-surface-alt);
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+}
+
+.visual-issues-list .issue-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.25rem;
+  padding-top: 0.5rem;
+  border-top: 1px dashed var(--border-subtle);
+}
+
+.visual-issues-list .finding-detail {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
+}
+
+.visual-issues-list .detail-label {
+  font-weight: 700;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+  min-width: 70px;
+}
+
+.visual-issues-list .detail-value {
+  flex: 1;
+  word-break: break-all;
+  background-color: var(--bg-surface);
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  border: 1px solid var(--border-subtle);
+}
+
+.visual-issues-list .detail-value.detected {
+  border-color: var(--warning);
+  background-color: var(--warning-bg);
+  color: var(--warning);
+}
+
+.visual-issues-list .detail-value.expected {
+  border-color: var(--success);
+  background-color: var(--success-bg);
+  color: var(--success);
+}
+
+.visual-issues-list .wcag-ref {
+  background-color: var(--advisory-bg);
+  border: 1px solid var(--advisory-border);
+  border-radius: var(--radius-sm);
+  padding: 0.35rem 0.6rem;
+}
+
+.visual-issues-list .wcag-ref .detail-label {
+  color: var(--advisory);
+}
+
+.visual-issues-list .wcag-ref .detail-value {
+  background-color: var(--bg-surface);
+  border-color: var(--advisory-border);
+  color: var(--advisory);
+}
+
+/* Responsive adjustments for visual checker */
+@media (max-width: 1024px) {
+  .visual-severity-summary {
+    gap: 1rem;
+  }
+
+  .visual-category-group {
+    flex: 1;
+    min-width: 200px;
+  }
+
+  .visual-score-meter-container {
+    flex-direction: column;
+    text-align: center;
+  }
+}
+
+@media (max-width: 580px) {
+  .visual-issues-list .issue-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .visual-issues-list .issue-main {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .visual-issues-list .finding-detail {
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+
+  .visual-issues-list .detail-label {
+    min-width: auto;
+  }
+
+  .palette-swatches {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
