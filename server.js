@@ -9,9 +9,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 const url = require('node:url');
 
-// Safely load .env file if process.env.GEMINI_API_KEY is not already defined in environment
+// Load .env without overriding values supplied by the host environment.
 (function loadEnvFile() {
-  if (process.env.GEMINI_API_KEY) return;
   const envPath = path.join(__dirname, '.env');
   if (fs.existsSync(envPath)) {
     try {
@@ -43,30 +42,17 @@ const geminiChecker = require('./lib/geminiChecker.js');
 const claimVerifier = require('./lib/claimVerifier.js');
 const visualChecker = require('./lib/visualChecker.js');
 const { PRESETS, SAMPLE_CONTENTS } = require('./lib/presets.js');
+const { createSupabaseAuth } = require('./lib/auth.js');
+const { createSupabaseRoleStore } = require('./lib/roles.js');
+const { createSupabaseRevisionStore } = require('./lib/revisions.js');
+const { requireMinimumRole, ROLE_NAMES } = require('./lib/authorization.js');
 
-const PORT = parseInt(process.env.PORT, 10) || 3000;
+const configuredPort = Number.parseInt(process.env.PORT, 10);
+const PORT = Number.isNaN(configuredPort) ? 3000 : configuredPort;
 const PUBLIC_DIR = path.join(__dirname, 'public');
-
-// In-memory revisions store initialized with a baseline snapshot
-let revisionsStore = [
-  {
-    id: 'rev_init',
-    versionNumber: 1,
-    timestamp: new Date(Date.now() - 3600000).toISOString(),
-    title: 'Initial Sample Policy Draft',
-    presetId: 'apexTech',
-    content: SAMPLE_CONTENTS.compliant.content,
-    score: 98,
-    status: 'approved',
-    statusLabel: 'Approved',
-    issuesCount: 0,
-    criticalCount: 0,
-    warningCount: 0,
-    advisoryCount: 0,
-    author: 'Compliance Lead (Auto-Initialized)',
-    notes: 'Initial approved press release guideline baseline.'
-  }
-];
+const supabaseAuth = createSupabaseAuth();
+const roleStore = createSupabaseRoleStore();
+const revisionStore = createSupabaseRevisionStore();
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -83,12 +69,47 @@ function sendJson(res, statusCode, data) {
   const body = JSON.stringify(data);
   res.writeHead(statusCode, {
     'Content-Type': 'application/json; charset=utf-8',
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
+    'Cache-Control': 'no-store'
   });
   res.end(body);
 }
+
+function getAllowedOrigins() {
+  const origins = new Set();
+  const configured = (process.env.APP_ORIGIN || '').split(',').map(value => value.trim()).filter(Boolean);
+  configured.forEach(value => {
+    try {
+      origins.add(new URL(value).origin);
+    } catch {
+      // Ignore invalid origin configuration; requests will fail the origin check.
+    }
+  });
+  if (process.env.RENDER_EXTERNAL_HOSTNAME) {
+    origins.add(`https://${process.env.RENDER_EXTERNAL_HOSTNAME}`);
+  }
+  if (process.env.NODE_ENV !== 'production') {
+    origins.add(`http://localhost:${PORT}`);
+    origins.add(`http://127.0.0.1:${PORT}`);
+  }
+  return origins;
+}
+
+function applyCorsHeaders(req, res) {
+  const origin = req.headers.origin;
+  if (!origin) return true;
+  if (!getAllowedOrigins().has(origin)) return false;
+  res.setHeader('Access-Control-Allow-Origin', origin);
+  res.setHeader('Vary', 'Origin');
+  res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+  return true;
+}
+
+const PUBLIC_API_ROUTES = new Set([
+  'GET /api/health',
+  'GET /api/auth/config',
+  'GET /api/presets'
+]);
 
 function parseBody(req) {
   return new Promise((resolve, reject) => {
@@ -117,12 +138,17 @@ const server = http.createServer(async (req, res) => {
   const pathname = parsedUrl.pathname;
   const method = req.method;
 
+  if (!applyCorsHeaders(req, res)) {
+    if (pathname.startsWith('/api/')) return sendJson(res, 403, { error: 'Origin is not allowed.' });
+    res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
+    return res.end('Origin is not allowed.');
+  }
+
   // Handle CORS preflight
   if (method === 'OPTIONS') {
     res.writeHead(204, {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Headers': 'Content-Type',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
+      'Access-Control-Allow-Headers': 'Authorization, Content-Type',
+      'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS'
     });
     return res.end();
   }
@@ -130,6 +156,14 @@ const server = http.createServer(async (req, res) => {
   // --- REST API ROUTES ---
   if (pathname.startsWith('/api/')) {
     try {
+      if (!PUBLIC_API_ROUTES.has(`${method} ${pathname}`)) {
+        req.authUser = await supabaseAuth.authenticateRequest(req);
+        if (!req.authUser) {
+          return sendJson(res, 401, { error: 'A valid bearer access token is required.' });
+        }
+        req.authRole = await roleStore.getRoleForUser(req.authUser.id);
+      }
+
       // 1. Health check
       if (pathname === '/api/health' && method === 'GET') {
         return sendJson(res, 200, {
@@ -141,6 +175,41 @@ const server = http.createServer(async (req, res) => {
           requiresApiKey: false,
           serverTime: new Date().toISOString()
         });
+      }
+
+      if (pathname === '/api/auth/config' && method === 'GET') {
+        const config = supabaseAuth.getPublicConfig();
+        if (!config) {
+          return sendJson(res, 503, { error: 'Authentication is not configured.' });
+        }
+        return sendJson(res, 200, config);
+      }
+
+      if (pathname === '/api/auth/me' && method === 'GET') {
+        return sendJson(res, 200, { user: req.authUser, role: req.authRole });
+      }
+
+      if (pathname === '/api/admin/users' && method === 'GET') {
+        requireMinimumRole(req.authRole, 'admin');
+        return sendJson(res, 200, { users: await roleStore.listUsers() });
+      }
+
+      if (pathname === '/api/admin/users/role' && method === 'POST') {
+        requireMinimumRole(req.authRole, 'admin');
+        const body = await parseBody(req);
+        const userId = typeof body.userId === 'string' ? body.userId : '';
+        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(userId)) {
+          return sendJson(res, 400, { error: 'A valid target account ID is required.' });
+        }
+        if (!ROLE_NAMES.includes(body.role)) {
+          return sendJson(res, 400, { error: 'Role must be user, reviewer, or admin.' });
+        }
+        const roleRecord = await roleStore.assignRole({
+          userId,
+          role: body.role,
+          assignedBy: req.authUser.id
+        });
+        return sendJson(res, 200, { success: true, role: roleRecord.role });
       }
 
       // 2. Presets & Sample Content
@@ -281,39 +350,86 @@ const server = http.createServer(async (req, res) => {
 
       // 6. Get Revisions
       if (pathname === '/api/revisions' && method === 'GET') {
-        return sendJson(res, 200, { revisions: revisionsStore });
+        return sendJson(res, 200, { revisions: await revisionStore.list(req.authUser.id, req.authRole) });
       }
 
-      // 7. Save Revision
+      if (pathname === '/api/revisions' && method === 'DELETE') {
+        const deleted = await revisionStore.clearOwn(req.authUser.id);
+        return sendJson(res, 200, { success: true, revisions: deleted });
+      }
+
+      // 7. Save a user's draft or apply a reviewer decision to an existing draft.
       if (pathname === '/api/revisions' && method === 'POST') {
         const rev = await parseBody(req);
-        const newRev = {
-          id: `rev_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-          versionNumber: revisionsStore.length + 1,
-          timestamp: new Date().toISOString(),
-          title: rev.title || `Revision #${revisionsStore.length + 1}`,
-          presetId: rev.presetId || 'apexTech',
-          content: rev.content || '',
-          score: typeof rev.score === 'number' ? rev.score : 100,
-          status: rev.status || 'draft',
-          statusLabel: rev.statusLabel || 'Draft',
-          issuesCount: rev.issuesCount || 0,
-          criticalCount: rev.criticalCount || 0,
-          warningCount: rev.warningCount || 0,
-          advisoryCount: rev.advisoryCount || 0,
-          author: rev.author || 'Content Creator',
-          notes: rev.notes || ''
+        if (rev.status !== undefined && rev.status !== 'draft') requireMinimumRole(req.authRole, 'reviewer');
+        if (rev.revisionId !== undefined) {
+          requireMinimumRole(req.authRole, 'reviewer');
+          if (!['approved', 'changes_requested'].includes(rev.status)) {
+            return sendJson(res, 400, { error: 'Review status must be approved or changes_requested.' });
+          }
+          if (typeof rev.revisionId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(rev.revisionId)) {
+            return sendJson(res, 400, { error: 'A valid revision ID is required.' });
+          }
+          const reviewed = await revisionStore.review(rev.revisionId, rev.status, rev.notes, req.authUser);
+          return sendJson(res, 200, { success: true, revision: reviewed });
+        }
+        if (rev.status !== undefined && rev.status !== 'draft') {
+          return sendJson(res, 400, { error: 'New revisions must be saved as drafts.' });
+        }
+        if (typeof rev.content !== 'string' || !rev.content.trim()) {
+          return sendJson(res, 400, { error: 'Revision content is required.' });
+        }
+        if (rev.content.length > 1000000) {
+          return sendJson(res, 400, { error: 'Revision content exceeds the 1,000,000 character limit.' });
+        }
+        const snapshot = {
+          presetId: typeof rev.presetId === 'string' ? rev.presetId : 'apexTech',
+          content: rev.content,
+          score: Number.isFinite(rev.score) ? Math.max(0, Math.min(100, rev.score)) : 100,
+          issuesCount: Number.isInteger(rev.issuesCount) && rev.issuesCount >= 0 ? rev.issuesCount : 0,
+          criticalCount: Number.isInteger(rev.criticalCount) && rev.criticalCount >= 0 ? rev.criticalCount : 0,
+          warningCount: Number.isInteger(rev.warningCount) && rev.warningCount >= 0 ? rev.warningCount : 0,
+          advisoryCount: Number.isInteger(rev.advisoryCount) && rev.advisoryCount >= 0 ? rev.advisoryCount : 0,
+          notes: typeof rev.notes === 'string' ? rev.notes : ''
         };
-        // Keep up to 50 revisions in memory
-        revisionsStore.unshift(newRev);
-        if (revisionsStore.length > 50) revisionsStore.pop();
-        return sendJson(res, 201, { success: true, revision: newRev });
+        const created = await revisionStore.create(snapshot, req.authUser);
+        return sendJson(res, 201, { success: true, revision: created });
       }
 
       return sendJson(res, 404, { error: 'API route not found' });
     } catch (err) {
-      console.error('API Error:', err);
-      return sendJson(res, 500, { error: err.message || 'Internal server error' });
+      if (err && err.code === 'AUTH_SERVICE_UNAVAILABLE') {
+        return sendJson(res, 503, { error: 'Authentication service is temporarily unavailable.' });
+      }
+      if (err && err.code === 'AUTH_NOT_CONFIGURED') {
+        return sendJson(res, 503, { error: 'Authentication is not configured.' });
+      }
+      if (err && ['ROLE_STORE_NOT_CONFIGURED', 'ROLE_STORE_UNAVAILABLE'].includes(err.code)) {
+        return sendJson(res, 503, { error: 'Role authorization is temporarily unavailable.' });
+      }
+      if (err && err.code === 'REVISION_STORE_NOT_CONFIGURED') {
+        return sendJson(res, 503, { error: 'Revision storage is not configured. Apply the revision migration and set the server-only service-role key.' });
+      }
+      if (err && err.code === 'REVISION_STORE_UNAVAILABLE') {
+        return sendJson(res, 503, { error: 'Revision storage is temporarily unavailable.' });
+      }
+      if (err && err.code === 'REVISION_DELETE_NOT_CONFIRMED') {
+        return sendJson(res, 503, { error: 'Revision deletion could not be confirmed. Reload history and try again.' });
+      }
+      if (err && err.code === 'FORBIDDEN') {
+        return sendJson(res, 403, { error: err.message });
+      }
+      if (err && err.code === 'LAST_ADMIN') {
+        return sendJson(res, 409, { error: err.message });
+      }
+      if (err && err.code === 'USER_NOT_FOUND') {
+        return sendJson(res, 404, { error: err.message });
+      }
+      if (err && err.code === 'REVISION_NOT_FOUND') return sendJson(res, 404, { error: err.message });
+      if (err && err.code === 'REVISION_NOT_DRAFT') return sendJson(res, 409, { error: err.message });
+      if (err && err.code === 'REVISION_CONFLICT') return sendJson(res, 409, { error: err.message });
+      console.error('API Error: request processing failed.');
+      return sendJson(res, 500, { error: 'Internal server error.' });
     }
   }
 
@@ -328,6 +444,8 @@ const server = http.createServer(async (req, res) => {
     filePath = path.join(__dirname, 'lib', 'checker.js');
   } else if (pathname === '/lib/presets.js') {
     filePath = path.join(__dirname, 'lib', 'presets.js');
+  } else if (pathname === '/vendor/supabase-2.110.0.js') {
+    filePath = path.join(__dirname, 'node_modules', '@supabase', 'supabase-js', 'dist', 'umd', 'supabase.js');
   }
 
   fs.stat(filePath, (err, stats) => {

@@ -297,7 +297,7 @@ const VisualChecker = (function() {
       formData.append('html', html);
       formData.append('preset', currentPreset);
 
-      const response = await fetch('/api/visual-check', {
+      const response = await window.BrandGuardAuth.apiFetch('/api/visual-check', {
         method: 'POST',
         body: formData
       });

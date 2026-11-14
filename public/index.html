@@ -8,7 +8,35 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛡️</text></svg>">
 </head>
 <body class="theme-light">
-  <div id="app" class="app-container">
+  <div id="authGate" class="auth-gate" role="dialog" aria-modal="true" aria-labelledby="authGateTitle">
+    <section class="auth-card">
+      <div class="auth-card-brand">BrandGuard AI</div>
+      <h1 id="authGateTitle">Sign in to continue</h1>
+      <p class="auth-card-description">Use your BrandGuard account to access audits and review tools.</p>
+      <div class="auth-mode-switch" role="tablist" aria-label="Authentication options">
+        <button id="showLoginBtn" class="auth-mode active" type="button" role="tab" aria-selected="true">Sign In</button>
+        <button id="showRegisterBtn" class="auth-mode" type="button" role="tab" aria-selected="false">Create Account</button>
+      </div>
+      <p id="authMessage" class="auth-message" role="status" aria-live="polite"></p>
+      <form id="loginForm" class="auth-form">
+        <label for="loginEmail">Email</label>
+        <input id="loginEmail" name="email" type="email" autocomplete="username" required>
+        <label for="loginPassword">Password</label>
+        <input id="loginPassword" name="password" type="password" autocomplete="current-password" required>
+        <button class="btn btn-primary" type="submit">Sign In</button>
+      </form>
+      <form id="registerForm" class="auth-form" hidden>
+        <label for="registerEmail">Email</label>
+        <input id="registerEmail" name="email" type="email" autocomplete="email" required>
+        <label for="registerPassword">Password</label>
+        <input id="registerPassword" name="password" type="password" autocomplete="new-password" minlength="8" required>
+        <small>Use at least 8 characters. Your account will not receive admin privileges.</small>
+        <button class="btn btn-primary" type="submit">Create Account</button>
+      </form>
+    </section>
+  </div>
+
+  <div id="app" class="app-container" inert>
 
     <!-- TOP HEADER -->
     <header class="app-header">
@@ -47,6 +75,15 @@
           </div>
         </div>
 
+        <div class="header-auth-group">
+          <div id="authUserControls" class="auth-user-controls" hidden>
+            <span id="authUserEmail" class="auth-user-email"></span>
+            <span class="auth-role-label">Role: <strong id="authUserRole">user</strong></span>
+            <button id="manageRolesBtn" class="btn btn-outline btn-sm" type="button" hidden>Manage Users</button>
+            <button id="logoutBtn" class="btn btn-outline btn-sm" type="button">Sign Out</button>
+          </div>
+        </div>
+
         <!-- Export Audit Certificate -->
         <button id="exportReportBtn" class="btn btn-secondary btn-sm" title="Download Compliance Audit Certificate (Markdown)">
           <svg class="btn-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -55,6 +92,15 @@
             <line x1="12" y1="15" x2="12" y2="3"/>
           </svg>
           <span>Export Audit</span>
+        </button>
+
+        <button id="exportPdfBtn" class="btn btn-secondary btn-sm" title="Download Compliance Audit Report (PDF)">
+          <svg class="btn-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <path d="M8 15h2a1.5 1.5 0 0 0 0-3H8v5m5-5v5h1a2.5 2.5 0 0 0 0-5h-1m5 0v5m0-2h2"/>
+          </svg>
+          <span>Export PDF</span>
         </button>
 
         <!-- Theme Toggle -->
@@ -133,29 +179,29 @@
 
     <!-- MAIN NAVIGATION TABS -->
     <nav class="nav-tabs" role="tablist">
-      <button class="nav-tab active" data-tab="audit" role="tab" aria-selected="true">
+      <button id="navAuditTab" class="nav-tab active" data-tab="audit" role="tab" aria-selected="true" aria-controls="tab-audit">
         <span class="tab-icon">✍️</span>
         <span>Content Audit Studio</span>
       </button>
-      <button class="nav-tab" data-tab="rules" role="tab" aria-selected="false">
+      <button id="navRulesTab" class="nav-tab" data-tab="rules" role="tab" aria-selected="false" aria-controls="tab-rules">
         <span class="tab-icon">⚙️</span>
         <span>Editable Brand Rules</span>
         <span class="tab-badge" id="ruleCountBadge">0</span>
       </button>
-      <button class="nav-tab" data-tab="history" role="tab" aria-selected="false">
+      <button id="navHistoryTab" class="nav-tab" data-tab="history" role="tab" aria-selected="false" aria-controls="tab-history">
         <span class="tab-icon">📜</span>
         <span>Revision History</span>
         <span class="tab-badge" id="revCountBadge">0</span>
       </button>
-      <button class="nav-tab" data-tab="claims" role="tab" aria-selected="false">
+      <button id="navClaimsTab" class="nav-tab" data-tab="claims" role="tab" aria-selected="false" aria-controls="tab-claims">
         <span class="tab-icon">🔎</span>
         <span>Factual Claims</span>
       </button>
-      <button class="nav-tab" data-tab="guidelines" role="tab" aria-selected="false">
+      <button id="navGuidelinesTab" class="nav-tab" data-tab="guidelines" role="tab" aria-selected="false" aria-controls="tab-guidelines">
         <span class="tab-icon">📖</span>
         <span>Guideline Reference</span>
       </button>
-      <button class="nav-tab" data-tab="visual" role="tab" aria-selected="false">
+      <button id="navVisualTab" class="nav-tab" data-tab="visual" role="tab" aria-selected="false" aria-controls="tab-visual">
         <span class="tab-icon">🎨</span>
         <span>Visual Checker</span>
       </button>
@@ -165,7 +211,7 @@
     <main class="main-content">
 
       <!-- TAB 1: CONTENT AUDIT STUDIO -->
-      <section id="tab-audit" class="tab-pane active">
+      <section id="tab-audit" class="tab-pane active" role="tabpanel" aria-labelledby="navAuditTab" tabindex="0">
         <div class="studio-grid">
 
           <!-- LEFT COLUMN: CONTENT EDITOR -->
@@ -237,10 +283,13 @@
               </div>
 
               <div class="workflow-actions">
-                <button id="requestChangesBtn" class="btn btn-warning" title="Flag content and record revision with required changes">
+                <button id="saveDraftBtn" class="btn btn-secondary" title="Save a persistent draft for your team to review">
+                  Save Draft
+                </button>
+                <button id="requestChangesBtn" class="btn btn-warning" title="Flag content and record revision with required changes" hidden>
                   ⚠️ Request Changes
                 </button>
-                <button id="approveContentBtn" class="btn btn-success" title="Approve current content version and log to revision history">
+                <button id="approveContentBtn" class="btn btn-success" title="Approve current content version and log to revision history" hidden>
                   ✅ Approve Content
                 </button>
               </div>
@@ -317,7 +366,7 @@
       </section>
 
       <!-- TAB 2: EDITABLE BRAND RULES -->
-      <section id="tab-rules" class="tab-pane">
+      <section id="tab-rules" class="tab-pane" role="tabpanel" aria-labelledby="navRulesTab" tabindex="0">
         <div class="card">
           <div class="card-header rules-header">
             <div>
@@ -420,7 +469,7 @@
                   <p>Detects transactional pushiness like "ACT NOW", "BUY TODAY OR REGRET", and artificial scarcity.</p>
                 </div>
                 <label class="switch">
-                  <input type="checkbox" id="toneUrgencyToggle" checked>
+                  <input type="checkbox" id="toneUrgencyToggle" aria-label="Enable aggressive urgency detection" checked>
                   <span class="slider round"></span>
                 </label>
               </div>
@@ -431,7 +480,7 @@
                   <p>Flags multiple exclamation or question marks (e.g. "!!!", "???") that compromise professional dignity.</p>
                 </div>
                 <label class="switch">
-                  <input type="checkbox" id="tonePunctuationToggle" checked>
+                  <input type="checkbox" id="tonePunctuationToggle" aria-label="Enable excessive punctuation checker" checked>
                   <span class="slider round"></span>
                 </label>
               </div>
@@ -442,7 +491,7 @@
                   <p>Flags non-professional slang terms such as "wanna", "gonna", "gotta", "ain't", "legit".</p>
                 </div>
                 <label class="switch">
-                  <input type="checkbox" id="toneSlangToggle" checked>
+                  <input type="checkbox" id="toneSlangToggle" aria-label="Enable informal slang checker" checked>
                   <span class="slider round"></span>
                 </label>
               </div>
@@ -453,7 +502,7 @@
                   <p>Detects consecutive words in ALL CAPS (excluding approved acronyms like SaaS, SLA, API, ROI).</p>
                 </div>
                 <label class="switch">
-                  <input type="checkbox" id="toneAllCapsToggle" checked>
+                  <input type="checkbox" id="toneAllCapsToggle" aria-label="Enable all-caps checker" checked>
                   <span class="slider round"></span>
                 </label>
               </div>
@@ -464,7 +513,7 @@
       </section>
 
       <!-- TAB 3: REVISION HISTORY -->
-      <section id="tab-history" class="tab-pane">
+      <section id="tab-history" class="tab-pane" role="tabpanel" aria-labelledby="navHistoryTab" tabindex="0">
         <div class="card">
           <div class="card-header">
             <div>
@@ -476,6 +525,30 @@
             </button>
           </div>
 
+          <!-- COMPARISON SELECTORS -->
+          <div class="comparison-selectors">
+            <h3>Side-by-Side Revision Comparison</h3>
+            <div class="comparison-select-row">
+              <div class="comparison-select-col">
+                <label for="compareRevA">Revision A</label>
+                <select id="compareRevA" class="form-control">
+                  <option value="">-- Select Revision A --</option>
+                </select>
+              </div>
+              <div class="comparison-select-col">
+                <label for="compareRevB">Revision B</label>
+                <select id="compareRevB" class="form-control">
+                  <option value="">-- Select Revision B --</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- COMPARISON VIEW -->
+          <div id="comparisonView">
+            <!-- Populated by JavaScript -->
+          </div>
+
           <div id="revisionsList" class="revisions-container">
             <!-- Dynamically populated -->
           </div>
@@ -483,7 +556,7 @@
       </section>
 
       <!-- TAB 4: FACTUAL CLAIM VERIFICATION (separate from compliance scoring) -->
-      <section id="tab-claims" class="tab-pane">
+      <section id="tab-claims" class="tab-pane" role="tabpanel" aria-labelledby="navClaimsTab" tabindex="0">
         <div class="claims-disclaimer" role="note">
           <strong>Evidence-based assistance only.</strong>
           This tool compares marketing claims against text you paste. It is not guaranteed legal or factual verification, it does not browse the web, and it never approves content for publication. A human reviewer must inspect every result.
@@ -575,7 +648,7 @@
       </section>
 
       <!-- TAB 5: GUIDELINE REFERENCE -->
-      <section id="tab-guidelines" class="tab-pane">
+      <section id="tab-guidelines" class="tab-pane" role="tabpanel" aria-labelledby="navGuidelinesTab" tabindex="0">
         <div class="card">
           <div class="card-header">
             <div>
@@ -618,7 +691,7 @@
       </section>
 
       <!-- TAB 6: VISUAL BRAND & ACCESSIBILITY CHECKER -->
-      <section id="tab-visual" class="tab-pane">
+      <section id="tab-visual" class="tab-pane" role="tabpanel" aria-labelledby="navVisualTab" tabindex="0">
         <div class="visual-disclaimer" role="note">
           <strong>Deterministic visual audit + AI assistance.</strong>
           This tool analyzes HTML markup against brand color palettes, typography, and WCAG 2.2 AA accessibility criteria. It does NOT execute uploaded HTML/JS, fetch external URLs, or perform pixel-perfect logo matching. Human design review and accessibility testing with assistive technology are always required.
@@ -755,14 +828,14 @@
     <!-- FOOTER -->
     <footer class="app-footer">
       <div class="footer-left">
-        <span class="footer-brand">BrandGuard AI &copy; 2026</span>
-        <span class="footer-sep">•</span>
+        <span class="footer-brand">BrandGuard AI</span>
+        <span class="footer-sep">|</span>
         <span>Deterministic Rule Governance</span>
-        <span class="footer-sep">•</span>
-        <span>Local Execution Only</span>
+        <span class="footer-sep">+</span>
+        <span>AI-Powered Analysis</span>
       </div>
       <div class="footer-right">
-        <span class="footer-badge">Zero API Keys Required</span>
+        <span class="footer-badge">| Secure Server-Side Processing</span>
       </div>
     </footer>
 
@@ -817,6 +890,25 @@
     </div>
 
     <!-- MODAL: APPROVE CONTENT -->
+    <div id="roleManagementModal" class="modal-backdrop">
+      <section class="modal-dialog role-management-dialog" role="dialog" aria-modal="true" aria-labelledby="roleManagementTitle">
+        <div class="modal-header">
+          <h3 id="roleManagementTitle">Manage User Roles</h3>
+          <button id="closeRoleManagementBtn" class="btn-close" type="button" aria-label="Close role management">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p class="modal-desc">Assign user, reviewer, or admin access to registered accounts.</p>
+          <p id="roleManagementMessage" class="role-management-message" role="status" aria-live="polite"></p>
+          <div id="roleManagementList" class="role-management-list"></div>
+          <div class="modal-footer">
+            <button id="refreshRoleUsersBtn" class="btn btn-outline" type="button">Refresh</button>
+            <button id="roleManagementDoneBtn" class="btn btn-primary" type="button">Done</button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- MODAL: APPROVE CONTENT -->
     <div id="approveModal" class="modal-backdrop">
       <div class="modal-dialog">
         <div class="modal-header">
@@ -829,8 +921,8 @@
           </p>
 
           <div class="form-group">
-            <label for="approverNameInput">Reviewer / Approver Name:</label>
-            <input type="text" id="approverNameInput" class="form-control" value="Marketing Lead" required>
+            <label>Authenticated reviewer / approver:</label>
+            <p id="approverIdentity" class="auth-identity">Sign in required</p>
           </div>
 
           <div class="form-group">
@@ -859,8 +951,8 @@
           </p>
 
           <div class="form-group">
-            <label for="reviewerNameInput">Reviewer Name:</label>
-            <input type="text" id="reviewerNameInput" class="form-control" value="Brand Governance Auditor" required>
+            <label>Authenticated reviewer:</label>
+            <p id="reviewerIdentity" class="auth-identity">Sign in required</p>
           </div>
 
           <div class="form-group">
@@ -911,12 +1003,18 @@
   </div>
 
   <!-- SCRIPT INCLUSIONS -->
+  <script src="vendor/supabase-2.110.0.js"></script>
+  <script src="js/auth.js"></script>
   <script src="lib/checker.js"></script>
   <script src="lib/presets.js"></script>
   <script src="js/rulesManager.js"></script>
   <script src="js/history.js"></script>
+  <script src="js/comments.js"></script>
   <script src="js/claims.js"></script>
   <script src="js/visual.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"
+          integrity="sha384-JcnsjUPPylna1s1fvi1u12X5qjY5OL56iySh75FdtrwhO/SWXgMjoVqcKyIIWOLk"
+          crossorigin="anonymous"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

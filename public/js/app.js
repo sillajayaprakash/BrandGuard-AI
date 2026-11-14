@@ -10,6 +10,12 @@
     activePresetKey: 'apexTech',
     currentText: '',
     analysisReport: null,
+    analysisContentSnapshot: '',
+    authenticatedUser: null,
+    authRole: 'user',
+    activeRevisionId: null,
+    lastAuthenticatedUserId: null,
+    appInitialized: false,
     issueFilter: 'all',
     workflowStatus: 'draft', // 'draft', 'approved', 'changes_requested'
     isChecking: false,
@@ -18,12 +24,36 @@
 
   // DOM Elements Cache
   const dom = {
+    authGate: document.getElementById('authGate'),
+    appContainer: document.getElementById('app'),
+    authMessage: document.getElementById('authMessage'),
+    authGateTitle: document.getElementById('authGateTitle'),
+    showLoginBtn: document.getElementById('showLoginBtn'),
+    showRegisterBtn: document.getElementById('showRegisterBtn'),
+    loginForm: document.getElementById('loginForm'),
+    registerForm: document.getElementById('registerForm'),
+    loginEmail: document.getElementById('loginEmail'),
+    loginPassword: document.getElementById('loginPassword'),
+    registerEmail: document.getElementById('registerEmail'),
+    registerPassword: document.getElementById('registerPassword'),
+    authUserControls: document.getElementById('authUserControls'),
+    authUserEmail: document.getElementById('authUserEmail'),
+    authUserRole: document.getElementById('authUserRole'),
+    manageRolesBtn: document.getElementById('manageRolesBtn'),
+    roleManagementModal: document.getElementById('roleManagementModal'),
+    roleManagementList: document.getElementById('roleManagementList'),
+    roleManagementMessage: document.getElementById('roleManagementMessage'),
+    refreshRoleUsersBtn: document.getElementById('refreshRoleUsersBtn'),
+    closeRoleManagementBtn: document.getElementById('closeRoleManagementBtn'),
+    roleManagementDoneBtn: document.getElementById('roleManagementDoneBtn'),
+    logoutBtn: document.getElementById('logoutBtn'),
     // Navigation
     navTabs: document.querySelectorAll('.nav-tab'),
     tabPanes: document.querySelectorAll('.tab-pane'),
     presetSelect: document.getElementById('presetSelect'),
     themeToggleBtn: document.getElementById('themeToggleBtn'),
     exportReportBtn: document.getElementById('exportReportBtn'),
+    exportPdfBtn: document.getElementById('exportPdfBtn'),
     ruleCountBadge: document.getElementById('ruleCountBadge'),
     revCountBadge: document.getElementById('revCountBadge'),
 
@@ -42,6 +72,7 @@
     copyContentBtn: document.getElementById('copyContentBtn'),
     approveContentBtn: document.getElementById('approveContentBtn'),
     requestChangesBtn: document.getElementById('requestChangesBtn'),
+    saveDraftBtn: document.getElementById('saveDraftBtn'),
 
     // Audit Report Area
     scoreRing: document.getElementById('scoreRing'),
@@ -102,14 +133,14 @@
     approveForm: document.getElementById('approveForm'),
     closeApproveModalBtn: document.getElementById('closeApproveModalBtn'),
     cancelApproveModalBtn: document.getElementById('cancelApproveModalBtn'),
-    approverNameInput: document.getElementById('approverNameInput'),
+    approverIdentity: document.getElementById('approverIdentity'),
     approverNotesInput: document.getElementById('approverNotesInput'),
 
     requestChangesModal: document.getElementById('requestChangesModal'),
     requestChangesForm: document.getElementById('requestChangesForm'),
     closeChangesModalBtn: document.getElementById('closeChangesModalBtn'),
     cancelChangesModalBtn: document.getElementById('cancelChangesModalBtn'),
-    reviewerNameInput: document.getElementById('reviewerNameInput'),
+    reviewerIdentity: document.getElementById('reviewerIdentity'),
     reviewerFeedbackInput: document.getElementById('reviewerFeedbackInput'),
 
     diffModal: document.getElementById('diffModal'),
@@ -124,6 +155,11 @@
     closeDiffModalBtn: document.getElementById('closeDiffModalBtn'),
     closeDiffBtn: document.getElementById('closeDiffBtn'),
     restoreFromDiffBtn: document.getElementById('restoreFromDiffBtn'),
+
+    // Side-by-Side Revision Comparison
+    compareRevA: document.getElementById('compareRevA'),
+    compareRevB: document.getElementById('compareRevB'),
+    comparisonView: document.getElementById('comparisonView'),
 
     // KPI Overview Elements
     kpiScoreValue: document.getElementById('kpiScoreValue'),
@@ -172,6 +208,212 @@
       .replace(/'/g, '&#39;');
   }
 
+  function setAuthMessage(message, type = '') {
+    if (!dom.authMessage) return;
+    dom.authMessage.textContent = message || '';
+    dom.authMessage.className = `auth-message${type ? ` auth-message-${type}` : ''}`;
+  }
+
+  async function loadRoleManagementUsers() {
+    if (state.authRole !== 'admin') return;
+    dom.roleManagementMessage.textContent = 'Loading accounts…';
+    dom.roleManagementList.replaceChildren();
+    try {
+      const response = await window.BrandGuardAuth.apiFetch('/api/admin/users');
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Could not load accounts.');
+      dom.roleManagementMessage.textContent = `${result.users.length} account(s) shown.`;
+      result.users.forEach(user => {
+        const row = document.createElement('div');
+        row.className = 'role-management-row';
+        const identity = document.createElement('span');
+        identity.textContent = user.email || user.id;
+        const roleSelect = document.createElement('select');
+        roleSelect.className = 'form-control role-management-select';
+        roleSelect.setAttribute('aria-label', `Role for ${user.email || user.id}`);
+        ['user', 'reviewer', 'admin'].forEach(role => {
+          const option = document.createElement('option');
+          option.value = role;
+          option.textContent = role[0].toUpperCase() + role.slice(1);
+          option.selected = user.role === role;
+          roleSelect.appendChild(option);
+        });
+        const saveButton = document.createElement('button');
+        saveButton.type = 'button';
+        saveButton.className = 'btn btn-outline btn-sm';
+        saveButton.textContent = 'Save Role';
+        saveButton.addEventListener('click', async () => {
+          saveButton.disabled = true;
+          try {
+            const updateResponse = await window.BrandGuardAuth.apiFetch('/api/admin/users/role', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ userId: user.id, role: roleSelect.value })
+            });
+            const updateResult = await updateResponse.json();
+            if (!updateResponse.ok) throw new Error(updateResult.error || 'Could not update role.');
+            dom.roleManagementMessage.textContent = 'Role updated.';
+            await loadRoleManagementUsers();
+            if (user.id === state.authenticatedUser.id) {
+              setAuthenticatedUser(await window.BrandGuardAuth.getVerifiedUser());
+            }
+          } catch (error) {
+            dom.roleManagementMessage.textContent = error.message || 'Could not update role.';
+          } finally {
+            saveButton.disabled = false;
+          }
+        });
+        row.append(identity, roleSelect, saveButton);
+        dom.roleManagementList.appendChild(row);
+      });
+    } catch (error) {
+      dom.roleManagementMessage.textContent = error.message || 'Could not load accounts.';
+    }
+  }
+
+  function showAuthMode(mode) {
+    const registering = mode === 'register';
+    dom.loginForm.hidden = registering;
+    dom.registerForm.hidden = !registering;
+    dom.showLoginBtn.classList.toggle('active', !registering);
+    dom.showRegisterBtn.classList.toggle('active', registering);
+    dom.showLoginBtn.setAttribute('aria-selected', String(!registering));
+    dom.showRegisterBtn.setAttribute('aria-selected', String(registering));
+    dom.authGateTitle.textContent = registering ? 'Create your account' : 'Sign in to continue';
+    setAuthMessage('');
+  }
+
+  function setAuthenticatedUser(user) {
+    const previousUser = state.authenticatedUser;
+    state.authenticatedUser = user || null;
+    const authenticated = Boolean(user && user.id);
+    state.authRole = authenticated && ['user', 'reviewer', 'admin'].includes(user.role) ? user.role : 'user';
+    if (authenticated) state.lastAuthenticatedUserId = user.id;
+    else if (previousUser) state.lastAuthenticatedUserId = previousUser.id;
+    dom.authGate.hidden = authenticated;
+    dom.appContainer.inert = !authenticated;
+    if (authenticated && state.authRole === 'admin') {
+      dom.appContainer.dataset.authRole = 'admin';
+    } else {
+      delete dom.appContainer.dataset.authRole;
+    }
+    dom.authUserControls.hidden = !authenticated;
+    const identity = authenticated ? (user.email || user.id) : 'Sign in required';
+    dom.authUserEmail.textContent = authenticated ? identity : '';
+    if (dom.authUserRole) dom.authUserRole.textContent = authenticated ? state.authRole : '';
+    if (dom.manageRolesBtn) dom.manageRolesBtn.hidden = !authenticated || state.authRole !== 'admin';
+    if (dom.approveContentBtn) dom.approveContentBtn.hidden = !authenticated || !['reviewer', 'admin'].includes(state.authRole);
+    if (dom.requestChangesBtn) dom.requestChangesBtn.hidden = !authenticated || !['reviewer', 'admin'].includes(state.authRole);
+    if (dom.approverIdentity) dom.approverIdentity.textContent = identity;
+    if (dom.reviewerIdentity) dom.reviewerIdentity.textContent = identity;
+    if (!authenticated && previousUser) {
+      dom.contentInput.value = '';
+      state.currentText = '';
+      state.analysisReport = null;
+      state.analysisContentSnapshot = '';
+      dom.issuesList.replaceChildren();
+    }
+  }
+
+  async function establishAuthenticatedUser() {
+    const user = await window.BrandGuardAuth.getVerifiedUser();
+    const wasAuthenticated = Boolean(state.authenticatedUser);
+    const previousUserId = state.lastAuthenticatedUserId;
+    setAuthenticatedUser(user);
+    if (state.appInitialized && !wasAuthenticated) {
+      if (previousUserId && previousUserId !== user.id) {
+        await window.BrandHistoryManager.init(user.id);
+      }
+      if (window.SAMPLE_CONTENTS && window.SAMPLE_CONTENTS.highRisk) {
+        dom.contentInput.value = window.SAMPLE_CONTENTS.highRisk.content;
+      }
+      state.analysisReport = null;
+      state.analysisContentSnapshot = '';
+      setWorkflowStatus('draft');
+      updateTextStats(dom.contentInput.value);
+      updateBadges();
+      if (state.activeTab === 'history') renderHistoryList();
+      runAnalysis(true);
+    }
+    startAuthenticatedApp();
+  }
+
+  function registerAuthListeners() {
+    dom.showLoginBtn.addEventListener('click', () => showAuthMode('login'));
+    dom.showRegisterBtn.addEventListener('click', () => showAuthMode('register'));
+
+    dom.loginForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const button = dom.loginForm.querySelector('button[type="submit"]');
+      button.disabled = true;
+      setAuthMessage('Signing in…');
+      try {
+        const result = await window.BrandGuardAuth.signIn(dom.loginEmail.value, dom.loginPassword.value);
+        dom.loginPassword.value = '';
+        if (!result.session) {
+          setAuthMessage('Sign-in did not return an active session. Confirm your email, then try again.', 'error');
+          return;
+        }
+        await establishAuthenticatedUser();
+      } catch (error) {
+        setAuthMessage(error.message || 'Sign in failed. Check your email and password.', 'error');
+      } finally {
+        button.disabled = false;
+      }
+    });
+
+    dom.registerForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const button = dom.registerForm.querySelector('button[type="submit"]');
+      button.disabled = true;
+      setAuthMessage('Creating your account…');
+      try {
+        const result = await window.BrandGuardAuth.signUp(dom.registerEmail.value, dom.registerPassword.value);
+        dom.registerPassword.value = '';
+        if (!result.session) {
+          setAuthMessage('Account created. Check your email for the confirmation link, then sign in here.', 'success');
+          showAuthMode('login');
+          setAuthMessage('Account created. Check your email for the confirmation link, then sign in here.', 'success');
+          dom.loginEmail.value = dom.registerEmail.value;
+          return;
+        }
+        await establishAuthenticatedUser();
+      } catch (error) {
+        setAuthMessage(error.message || 'Registration failed. Check the email and password requirements.', 'error');
+      } finally {
+        button.disabled = false;
+      }
+    });
+
+    dom.logoutBtn.addEventListener('click', async () => {
+      dom.logoutBtn.disabled = true;
+      try {
+        await window.BrandGuardAuth.signOut();
+        setAuthenticatedUser(null);
+        showAuthMode('login');
+      } catch {
+        showToast('Could not sign out cleanly. Please try again.', 'error');
+      } finally {
+        dom.logoutBtn.disabled = false;
+      }
+    });
+  }
+
+  function watchAuthStateChanges() {
+    window.BrandGuardAuth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT' || !session) {
+        setAuthenticatedUser(null);
+        return;
+      }
+      if (['INITIAL_SESSION', 'SIGNED_IN', 'TOKEN_REFRESHED', 'USER_UPDATED'].includes(event)) {
+        // Keep the Supabase callback synchronous; verify identity after it returns.
+        setTimeout(() => {
+          establishAuthenticatedUser().catch(() => setAuthenticatedUser(null));
+        }, 0);
+      }
+    });
+  }
+
   /**
    * Helper: Generate simple word-level visual diff between two strings
    */
@@ -215,6 +457,69 @@
   }
 
   /**
+   * Render side-by-side revision comparison using LCS-based diff segments.
+   * All revision content is rendered as escaped text nodes — never raw HTML.
+   */
+  function renderComparison(rev1, rev2, diff1, diff2, identical) {
+    if (!dom.comparisonView) return;
+
+    if (identical) {
+      dom.comparisonView.innerHTML = `
+        <div class="comparison-identical">
+          <p>These revisions are identical. No differences detected.</p>
+        </div>
+      `;
+      dom.comparisonView.style.display = 'block';
+      return;
+    }
+
+    const formatMeta = (rev) => `
+      <div class="comparison-meta">
+        <div class="comparison-version">v${rev.versionNumber}</div>
+        <div class="comparison-title">${escapeHtml(rev.title || 'Untitled')}</div>
+        <div class="comparison-meta-sub">
+          <span><strong>By:</strong> ${escapeHtml(rev.author || 'Unknown')}</span>
+          <span><strong>Date:</strong> ${new Date(rev.timestamp).toLocaleString()}</span>
+          <span><strong>Status:</strong> <span class="status-pill status-${rev.status || 'draft'}">${escapeHtml(rev.statusLabel || rev.status || 'Draft')}</span></span>
+          <span><strong>Score:</strong> ${rev.score}/100</span>
+        </div>
+      </div>
+    `;
+
+    const buildPanelContent = (segments) => {
+      return segments.map(seg => {
+        const escaped = escapeHtml(seg.text);
+        if (seg.type === 'added') {
+          return '<span class="diff-added" title="Added">' + escaped + '</span>';
+        }
+        if (seg.type === 'removed') {
+          return '<span class="diff-removed" title="Removed">' + escaped + '</span>';
+        }
+        return escaped;
+      }).join('');
+    };
+
+    const meta1 = formatMeta(rev1);
+    const meta2 = formatMeta(rev2);
+    const content1 = buildPanelContent(diff1);
+    const content2 = buildPanelContent(diff2);
+
+    dom.comparisonView.innerHTML = `
+      <div class="comparison-container">
+        <div class="comparison-panel panel-a">
+          ${meta1}
+          <div class="comparison-content"><pre>${content1}</pre></div>
+        </div>
+        <div class="comparison-panel panel-b">
+          ${meta2}
+          <div class="comparison-content"><pre>${content2}</pre></div>
+        </div>
+      </div>
+    `;
+    dom.comparisonView.style.display = 'block';
+  }
+
+  /**
    * Update Text Statistics (Words, Chars, Read Time)
    */
   function updateTextStats(text) {
@@ -249,7 +554,7 @@
 
       // Try backend API first; fallback to client-side engine seamlessly
       try {
-        const response = await fetch('/api/check', {
+        const response = await window.BrandGuardAuth.apiFetch('/api/check', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ text, rules })
@@ -266,6 +571,7 @@
       }
 
       state.analysisReport = report;
+      state.analysisContentSnapshot = text;
       renderReport(report);
 
       dom.syncStatusIndicator.textContent = 'Rule Audited';
@@ -307,7 +613,7 @@
     const rules = window.BrandRulesManager.getActiveRules();
 
     try {
-      const response = await fetch('/api/ai-check', {
+      const response = await window.BrandGuardAuth.apiFetch('/api/ai-check', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -333,6 +639,7 @@
       }
 
       state.analysisReport = data;
+      state.analysisContentSnapshot = text;
       renderReport(data);
 
       dom.syncStatusIndicator.textContent = 'AI Audited';
@@ -513,8 +820,113 @@
         fixBtn.addEventListener('click', () => applySingleFix(issue));
       }
 
+      appendFindingComments(card, issue);
+
       dom.issuesList.appendChild(card);
     });
+  }
+
+  function getFindingCommentId(issue) {
+    return JSON.stringify([
+      String(issue.id || 'finding'),
+      String(issue.category || ''),
+      String(issue.startIndex == null ? '' : issue.startIndex),
+      String(issue.endIndex == null ? '' : issue.endIndex),
+      String(issue.matchedText || '')
+    ]);
+  }
+
+  function appendFindingComments(card, issue) {
+    const section = document.createElement('section');
+    section.className = 'finding-comments';
+    const heading = document.createElement('h4');
+    heading.className = 'finding-comments-title';
+    heading.textContent = 'Comments';
+    const list = document.createElement('ul');
+    list.className = 'finding-comments-list';
+    list.setAttribute('aria-live', 'polite');
+    const form = document.createElement('form');
+    form.className = 'finding-comment-form';
+    const inputLabel = document.createElement('label');
+    inputLabel.textContent = 'Add a comment';
+    const input = document.createElement('textarea');
+    input.className = 'finding-comment-input';
+    input.rows = 2;
+    input.maxLength = 2000;
+    input.placeholder = 'Write a note about this finding…';
+    inputLabel.appendChild(input);
+    const addButton = document.createElement('button');
+    addButton.type = 'submit';
+    addButton.className = 'btn btn-sm btn-secondary';
+    addButton.textContent = 'Add Comment';
+    form.append(inputLabel, addButton);
+    section.append(heading, list, form);
+
+    const findingId = getFindingCommentId(issue);
+    const content = state.analysisContentSnapshot;
+    const presetId = state.activePresetKey;
+    const userId = state.authenticatedUser.id;
+
+    function renderComments() {
+      list.replaceChildren();
+      const comments = window.BrandFindingComments.getComments(presetId, findingId, content, userId);
+      if (comments.length === 0) {
+        const empty = document.createElement('li');
+        empty.className = 'finding-comments-empty';
+        empty.textContent = 'No comments yet.';
+        list.appendChild(empty);
+        return;
+      }
+
+      comments.forEach(comment => {
+        const item = document.createElement('li');
+        item.className = 'finding-comment-item';
+        const body = document.createElement('p');
+        body.className = 'finding-comment-text';
+        body.textContent = comment.text;
+        const timestamp = document.createElement('time');
+        timestamp.className = 'finding-comment-time';
+        timestamp.dateTime = comment.createdAt;
+        timestamp.textContent = new Date(comment.createdAt).toLocaleString();
+        const removeButton = document.createElement('button');
+        removeButton.type = 'button';
+        removeButton.className = 'finding-comment-delete';
+        removeButton.textContent = 'Delete';
+        removeButton.setAttribute('aria-label', 'Delete comment');
+        removeButton.addEventListener('click', () => {
+          try {
+            window.BrandFindingComments.deleteComment(presetId, findingId, content, comment.id, userId);
+            renderComments();
+          } catch (error) {
+            showToast(error.message || 'Could not delete this comment.', 'error');
+          }
+        });
+        const meta = document.createElement('div');
+        meta.className = 'finding-comment-meta';
+        meta.append(timestamp, removeButton);
+        item.append(body, meta);
+        list.appendChild(item);
+      });
+    }
+
+    form.addEventListener('submit', event => {
+      event.preventDefault();
+      if (!input.value.trim()) {
+        showToast('Enter a comment before adding it.', 'warning');
+        input.focus();
+        return;
+      }
+      try {
+        window.BrandFindingComments.addComment(presetId, findingId, content, input.value, userId);
+        input.value = '';
+        renderComments();
+      } catch (error) {
+        showToast(error.message || 'Could not save this comment.', 'error');
+      }
+    });
+
+    renderComments();
+    card.appendChild(section);
   }
 
   /**
@@ -608,7 +1020,9 @@
     if (tabId === 'rules') {
       renderRulesTables();
     } else if (tabId === 'history') {
-      renderHistoryList();
+      window.BrandHistoryManager.init(state.authenticatedUser.id)
+        .then(renderHistoryList)
+        .catch(error => showToast(error.message || 'Could not refresh revision history.', 'error'));
     } else if (tabId === 'guidelines') {
       renderGuidelines();
     }
@@ -634,6 +1048,7 @@
    * Sample Content Loader
    */
   function loadSample(sampleKey) {
+    state.activeRevisionId = null;
     if (sampleKey === 'clear') {
       dom.contentInput.value = '';
       dom.sampleContentSelect.selectedIndex = 0;
@@ -800,6 +1215,11 @@
 
       dom.revisionsList.appendChild(card);
     });
+
+    // Populate comparison dropdowns with all revisions
+    if (typeof populateComparisonDropdowns === 'function') {
+      populateComparisonDropdowns();
+    }
   }
 
   /**
@@ -897,6 +1317,14 @@
         if (iss.suggestedCorrection) {
           md += `- **Recommended Alternative:** \`${iss.suggestedCorrection}\`\n`;
         }
+        const comments = window.BrandFindingComments.getComments(
+          state.activePresetKey,
+          getFindingCommentId(iss),
+          state.analysisContentSnapshot,
+          state.authenticatedUser.id
+        );
+        const markdownComments = window.BrandFindingComments.formatMarkdownComments(comments);
+        if (markdownComments) md += `${markdownComments}\n`;
         md += `\n`;
       });
     }
@@ -918,9 +1346,231 @@
   }
 
   /**
+   * Export the current audit snapshot as a paginated, plain-text PDF report.
+   */
+  function exportAuditPdf() {
+    const report = state.analysisReport;
+    if (!report) {
+      showToast('Please analyze content before exporting report.', 'warning');
+      return;
+    }
+
+    const JsPDF = window.jspdf && window.jspdf.jsPDF;
+    if (!JsPDF) {
+      showToast('PDF export is unavailable because the PDF library did not load. Check your connection and reload the page.', 'error', 6000);
+      return;
+    }
+
+    try {
+      const doc = new JsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const margin = 17;
+      const contentWidth = pageWidth - margin * 2;
+      const bottomLimit = pageHeight - 19;
+      let y = margin;
+
+      const cleanText = (value) => String(value == null ? '' : value)
+        .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F]/g, '')
+        .replace(/\r\n?/g, '\n');
+      const safeLines = (value, width) => doc.splitTextToSize(cleanText(value), width);
+      const addPageIfNeeded = (height) => {
+        if (y + height > bottomLimit) {
+          doc.addPage();
+          y = margin;
+          return true;
+        }
+        return false;
+      };
+      const drawSectionTitle = (title) => {
+        addPageIfNeeded(15);
+        y += 4;
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(13);
+        doc.setTextColor(24, 39, 67);
+        doc.text(title, margin, y);
+        y += 3;
+        doc.setDrawColor(218, 226, 238);
+        doc.setLineWidth(0.35);
+        doc.line(margin, y, pageWidth - margin, y);
+        y += 7;
+      };
+      const drawLabelValue = (label, value) => {
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9);
+        doc.setTextColor(86, 100, 122);
+        const labelLines = safeLines(label, contentWidth);
+        addPageIfNeeded(labelLines.length * 4 + 5);
+        doc.text(labelLines, margin, y);
+        y += labelLines.length * 4 + 1;
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(10);
+        doc.setTextColor(37, 48, 66);
+        const valueLines = safeLines(value || 'Not provided', contentWidth - 2);
+        valueLines.forEach((line) => {
+          addPageIfNeeded(5);
+          doc.text(line, margin + 1, y);
+          y += 4.7;
+        });
+        y += 2;
+      };
+
+      const preset = window.PRESETS && window.PRESETS[state.activePresetKey];
+      const findings = Array.isArray(report.issues) ? report.issues
+        : (Array.isArray(report.findings) ? report.findings : []);
+      const summary = report.summary || {};
+      const countFor = (severity) => findings.filter(item => item.severity === severity).length;
+      const criticalCount = Number.isFinite(summary.criticalCount) ? summary.criticalCount : countFor('critical');
+      const warningCount = Number.isFinite(summary.warningCount) ? summary.warningCount : countFor('warning');
+      const advisoryCount = Number.isFinite(summary.advisoryCount) ? summary.advisoryCount : countFor('advisory');
+      const statusLabels = {
+        compliant: 'Compliant',
+        needs_revision: 'Revision Recommended',
+        non_compliant: 'Non-Compliant'
+      };
+      const status = statusLabels[report.status] || cleanText(report.status || 'Completed');
+      const generatedAt = new Date().toLocaleString();
+      const overallSummary = summary.overallAssessment ||
+        (report.score < 70 || criticalCount >= 2
+          ? 'Critical compliance risks were identified. Revise the content before publication.'
+          : (warningCount > 0 || criticalCount > 0 || report.score < 90
+            ? 'Review the findings and recommended corrections before publication.'
+            : 'No material compliance issues were identified in this audit.'));
+
+      // Report masthead
+      doc.setFillColor(24, 39, 67);
+      doc.roundedRect(margin, y, contentWidth, 34, 2, 2, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(17);
+      doc.setTextColor(255, 255, 255);
+      doc.text('BrandGuard AI', margin + 7, y + 9);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(208, 219, 236);
+      doc.text('CONTENT GOVERNANCE AUDIT REPORT', margin + 7, y + 15);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
+      doc.setTextColor(255, 255, 255);
+      doc.text(`${Number(report.score) || 0}/100  |  ${status.toUpperCase()}`, margin + 7, y + 25);
+      y += 41;
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(37, 48, 66);
+      const headerRows = [
+        ['Brand / Preset', preset ? preset.name : state.activePresetKey],
+        ['Generated', generatedAt]
+      ];
+      headerRows.forEach(([label, value]) => {
+        addPageIfNeeded(6);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(86, 100, 122);
+        doc.text(label, margin, y);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(37, 48, 66);
+        doc.text(safeLines(value, contentWidth - 35), margin + 35, y);
+        y += 6;
+      });
+
+      drawSectionTitle('Executive Summary');
+      const totalFindings = Number.isFinite(summary.totalIssues) ? summary.totalIssues
+        : (Number.isFinite(summary.totalFindings) ? summary.totalFindings : findings.length);
+      drawLabelValue('Total findings', totalFindings);
+      drawLabelValue('Critical violations', criticalCount);
+      drawLabelValue('Warnings', warningCount);
+      drawLabelValue('Advisory suggestions', advisoryCount);
+      drawLabelValue('Overall audit summary', overallSummary);
+
+      drawSectionTitle('Detailed Findings');
+      if (findings.length === 0) {
+        drawLabelValue('Audit result', 'No findings. Content is compliant with the active brand guidelines.');
+      } else {
+        findings.forEach((finding, index) => {
+          const severity = cleanText(finding.severity || 'advisory').toLowerCase();
+          const treatment = severity === 'critical'
+            ? { fill: [254, 237, 238], accent: [190, 42, 55], label: 'CRITICAL' }
+            : (severity === 'warning'
+              ? { fill: [255, 247, 229], accent: [176, 106, 8], label: 'WARNING' }
+              : { fill: [235, 244, 255], accent: [42, 103, 168], label: 'ADVISORY' });
+          addPageIfNeeded(16);
+          doc.setFillColor(...treatment.fill);
+          doc.roundedRect(margin, y - 4, contentWidth, 11, 1.5, 1.5, 'F');
+          doc.setFillColor(...treatment.accent);
+          doc.rect(margin, y - 4, 2, 11, 'F');
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(9);
+          doc.setTextColor(...treatment.accent);
+          doc.text(`${index + 1}. ${treatment.label}`, margin + 5, y + 1);
+          doc.setTextColor(37, 48, 66);
+          doc.text(safeLines(finding.categoryLabel || finding.category || 'Finding', contentWidth - 45), margin + 31, y + 1);
+          y += 12;
+          drawLabelValue('Flagged text', finding.matchedText || 'Not provided');
+          drawLabelValue('Explanation', finding.explanation || 'No explanation provided.');
+          drawLabelValue('Suggested correction', finding.suggestedCorrection || 'No correction suggested.');
+          const comments = window.BrandFindingComments.getComments(
+            state.activePresetKey,
+            getFindingCommentId(finding),
+            state.analysisContentSnapshot,
+            state.authenticatedUser.id
+          );
+          const pdfComments = window.BrandFindingComments.formatPlainTextComments(comments);
+          if (pdfComments) drawLabelValue('Comments', pdfComments);
+          y += 2;
+        });
+      }
+
+      drawSectionTitle('Original Content Snapshot');
+      const originalContent = state.analysisContentSnapshot;
+      if (!originalContent) {
+        drawLabelValue('Content', '(The audited content was empty.)');
+      } else {
+        doc.setFont('courier', 'normal');
+        doc.setFontSize(8.5);
+        doc.setTextColor(37, 48, 66);
+        const lines = safeLines(originalContent, contentWidth - 4);
+        lines.forEach((line) => {
+          addPageIfNeeded(4.2);
+          doc.text(line, margin + 2, y);
+          y += 3.8;
+        });
+      }
+
+      // Apply page totals after content pagination is complete.
+      const pageCount = doc.internal.getNumberOfPages();
+      for (let page = 1; page <= pageCount; page++) {
+        doc.setPage(page);
+        doc.setDrawColor(218, 226, 238);
+        doc.setLineWidth(0.3);
+        doc.line(margin, pageHeight - 13, pageWidth - margin, pageHeight - 13);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.setTextColor(105, 116, 133);
+        doc.text('BrandGuard AI  |  Audit Report', margin, pageHeight - 8);
+        doc.text(`Page ${page} of ${pageCount}`, pageWidth - margin, pageHeight - 8, { align: 'right' });
+      }
+
+      doc.save(`BrandGuard-Audit-${Date.now()}.pdf`);
+      showToast('PDF audit report downloaded successfully!', 'success');
+    } catch (error) {
+      console.error('PDF export error:', error);
+      showToast('Could not generate the PDF report. Please try again.', 'error');
+    }
+  }
+
+  /**
    * Event Listeners Registration
    */
   function registerEventListeners() {
+    dom.manageRolesBtn.addEventListener('click', async () => {
+      if (state.authRole !== 'admin') return;
+      dom.roleManagementModal.classList.add('active');
+      await loadRoleManagementUsers();
+    });
+    dom.refreshRoleUsersBtn.addEventListener('click', loadRoleManagementUsers);
+    dom.closeRoleManagementBtn.addEventListener('click', () => dom.roleManagementModal.classList.remove('active'));
+    dom.roleManagementDoneBtn.addEventListener('click', () => dom.roleManagementModal.classList.remove('active'));
+
     // 1. Tab Switching
     dom.navTabs.forEach(tabBtn => {
       tabBtn.addEventListener('click', () => {
@@ -941,6 +1591,7 @@
 
     // 4. Content Input Typing & Debounced Checking
     dom.contentInput.addEventListener('input', () => {
+      state.activeRevisionId = null;
       updateTextStats(dom.contentInput.value);
       dom.syncStatusIndicator.textContent = 'Typing...';
       dom.syncStatusIndicator.style.color = 'var(--text-muted)';
@@ -950,6 +1601,33 @@
       state.debounceTimer = setTimeout(() => {
         runAnalysis(false);
       }, 350);
+    });
+
+    dom.saveDraftBtn.addEventListener('click', async () => {
+      const report = state.analysisReport || {};
+      if (!dom.contentInput.value.trim()) {
+        showToast('Add content before saving a draft.', 'warning');
+        return;
+      }
+      dom.saveDraftBtn.disabled = true;
+      try {
+        const revision = await window.BrandHistoryManager.saveDraft({
+          presetId: state.activePresetKey,
+          content: dom.contentInput.value,
+          score: report.score || 100,
+          issuesCount: report.summary ? report.summary.totalIssues : 0,
+          criticalCount: report.summary ? report.summary.criticalCount : 0,
+          warningCount: report.summary ? report.summary.warningCount : 0,
+          advisoryCount: report.summary ? report.summary.advisoryCount : 0
+        });
+        state.activeRevisionId = revision.id;
+        renderHistoryList();
+        showToast('Draft saved to shared revision history.', 'success');
+      } catch (error) {
+        showToast(error.message || 'Could not save the draft.', 'error');
+      } finally {
+        dom.saveDraftBtn.disabled = false;
+      }
     });
 
     // 5. Analyze Button (Deterministic Rule-Based)
@@ -1012,6 +1690,7 @@
 
     // 9. Export Audit
     dom.exportReportBtn.addEventListener('click', exportAuditReport);
+    if (dom.exportPdfBtn) dom.exportPdfBtn.addEventListener('click', exportAuditPdf);
 
     // 10. Theme Toggle
     dom.themeToggleBtn.addEventListener('click', () => {
@@ -1040,31 +1719,36 @@
     dom.closeApproveModalBtn.addEventListener('click', () => dom.approveModal.classList.remove('active'));
     dom.cancelApproveModalBtn.addEventListener('click', () => dom.approveModal.classList.remove('active'));
 
-    dom.approveForm.addEventListener('submit', (e) => {
+    dom.approveForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const approverName = dom.approverNameInput.value.trim() || 'Reviewer';
+      const submitButton = dom.approveForm.querySelector('button[type="submit"]');
       const notes = dom.approverNotesInput.value.trim();
       const report = state.analysisReport || {};
-
-      window.BrandHistoryManager.addRevision({
-        title: `Approved by ${approverName}`,
-        presetId: state.activePresetKey,
-        content: dom.contentInput.value,
-        score: report.score || 100,
-        status: 'approved',
-        statusLabel: 'Approved',
-        issuesCount: report.summary ? report.summary.totalIssues : 0,
-        criticalCount: report.summary ? report.summary.criticalCount : 0,
-        warningCount: report.summary ? report.summary.warningCount : 0,
-        advisoryCount: report.summary ? report.summary.advisoryCount : 0,
-        author: approverName,
-        notes: notes || 'Content approved for publication.'
-      });
-
-      setWorkflowStatus('approved');
-      dom.approveModal.classList.remove('active');
-      updateBadges();
-      showToast('Content approved & logged to Revision History!', 'success');
+      submitButton.disabled = true;
+      try {
+        await window.BrandHistoryManager.addRevisionConfirmed({
+          revisionId: state.activeRevisionId,
+          presetId: state.activePresetKey,
+          content: dom.contentInput.value,
+          score: report.score || 100,
+          status: 'approved',
+          statusLabel: 'Approved',
+          issuesCount: report.summary ? report.summary.totalIssues : 0,
+          criticalCount: report.summary ? report.summary.criticalCount : 0,
+          warningCount: report.summary ? report.summary.warningCount : 0,
+          advisoryCount: report.summary ? report.summary.advisoryCount : 0,
+          notes: notes || 'Content approved for publication.'
+        });
+        setWorkflowStatus('approved');
+        renderHistoryList();
+        dom.approveModal.classList.remove('active');
+        updateBadges();
+        showToast('Content approved & logged to Revision History!', 'success');
+      } catch (error) {
+        showToast(error.message || 'Approval was not confirmed by the server.', 'error');
+      } finally {
+        submitButton.disabled = false;
+      }
     });
 
     // 12. Workflow: Request Changes Modal
@@ -1075,31 +1759,36 @@
     dom.closeChangesModalBtn.addEventListener('click', () => dom.requestChangesModal.classList.remove('active'));
     dom.cancelChangesModalBtn.addEventListener('click', () => dom.requestChangesModal.classList.remove('active'));
 
-    dom.requestChangesForm.addEventListener('submit', (e) => {
+    dom.requestChangesForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const reviewerName = dom.reviewerNameInput.value.trim() || 'Auditor';
+      const submitButton = dom.requestChangesForm.querySelector('button[type="submit"]');
       const feedback = dom.reviewerFeedbackInput.value.trim();
       const report = state.analysisReport || {};
-
-      window.BrandHistoryManager.addRevision({
-        title: `Changes Requested by ${reviewerName}`,
-        presetId: state.activePresetKey,
-        content: dom.contentInput.value,
-        score: report.score || 100,
-        status: 'changes_requested',
-        statusLabel: 'Changes Requested',
-        issuesCount: report.summary ? report.summary.totalIssues : 0,
-        criticalCount: report.summary ? report.summary.criticalCount : 0,
-        warningCount: report.summary ? report.summary.warningCount : 0,
-        advisoryCount: report.summary ? report.summary.advisoryCount : 0,
-        author: reviewerName,
-        notes: feedback
-      });
-
-      setWorkflowStatus('changes_requested');
-      dom.requestChangesModal.classList.remove('active');
-      updateBadges();
-      showToast('Changes requested & logged to Revision History.', 'warning');
+      submitButton.disabled = true;
+      try {
+        await window.BrandHistoryManager.addRevisionConfirmed({
+          revisionId: state.activeRevisionId,
+          presetId: state.activePresetKey,
+          content: dom.contentInput.value,
+          score: report.score || 100,
+          status: 'changes_requested',
+          statusLabel: 'Changes Requested',
+          issuesCount: report.summary ? report.summary.totalIssues : 0,
+          criticalCount: report.summary ? report.summary.criticalCount : 0,
+          warningCount: report.summary ? report.summary.warningCount : 0,
+          advisoryCount: report.summary ? report.summary.advisoryCount : 0,
+          notes: feedback
+        });
+        setWorkflowStatus('changes_requested');
+        renderHistoryList();
+        dom.requestChangesModal.classList.remove('active');
+        updateBadges();
+        showToast('Changes requested & logged to Revision History.', 'warning');
+      } catch (error) {
+        showToast(error.message || 'The change request was not confirmed by the server.', 'error');
+      } finally {
+        submitButton.disabled = false;
+      }
     });
 
     // 13. Rules Tab Sub-Tabs
@@ -1284,9 +1973,51 @@
       }
     });
 
+    // 19. Side-by-Side Revision Comparison Dropdowns
+    function populateComparisonDropdowns() {
+      if (!dom.compareRevA || !dom.compareRevB) return;
+      const revisions = window.BrandHistoryManager.getRevisions();
+      const options = revisions.map(rev =>
+        '<option value="' + rev.id + '">v' + rev.versionNumber + ' â€” ' + escapeHtml(rev.title || 'Untitled') + ' (' + new Date(rev.timestamp).toLocaleDateString() + ')</option>'
+      ).join('');
+      const aHtml = '<option value="">-- Select Revision A --</option>' + options;
+      const bHtml = '<option value="">-- Select Revision B --</option>' + options;
+      if (dom.compareRevA.innerHTML !== aHtml) dom.compareRevA.innerHTML = aHtml;
+      if (dom.compareRevB.innerHTML !== bHtml) dom.compareRevB.innerHTML = bHtml;
+    }
+
+    function handleComparisonChange() {
+      const idA = dom.compareRevA ? dom.compareRevA.value : '';
+      const idB = dom.compareRevB ? dom.compareRevB.value : '';
+      if (!idA || !idB || idA === idB) {
+        if (dom.comparisonView) {
+          dom.comparisonView.style.display = 'none';
+          dom.comparisonView.innerHTML = '';
+        }
+        return;
+      }
+      const comparison = window.BrandHistoryManager.compareRevisions(idA, idB);
+      if (!comparison) {
+        if (dom.comparisonView) {
+          dom.comparisonView.innerHTML = '<div class="comparison-error"><p>One or both revisions could not be found.</p></div>';
+          dom.comparisonView.style.display = 'block';
+        }
+        return;
+      }
+      renderComparison(comparison.rev1, comparison.rev2, comparison.diff1, comparison.diff2, comparison.identical);
+    }
+
+    if (dom.compareRevA) {
+      dom.compareRevA.addEventListener('change', handleComparisonChange);
+    }
+    if (dom.compareRevB) {
+      dom.compareRevB.addEventListener('change', handleComparisonChange);
+    }
+
     function restoreRevision(revId) {
       const rev = window.BrandHistoryManager.getRevisionById(revId);
       if (rev) {
+        state.activeRevisionId = rev.id;
         dom.contentInput.value = rev.content;
         setWorkflowStatus(rev.status, rev.statusLabel);
         switchTab('audit');
@@ -1296,12 +2027,17 @@
     }
 
     // 19. Clear History
-    dom.clearHistoryBtn.addEventListener('click', () => {
-      if (confirm('Clear all revision history?')) {
-        window.BrandHistoryManager.clearHistory();
-        renderHistoryList();
-        updateBadges();
-        showToast('Revision history cleared.', 'info');
+    dom.clearHistoryBtn.addEventListener('click', async () => {
+      if (confirm('Clear your revision history? Shared drafts owned by other users will remain available to their owners and reviewers.')) {
+        try {
+          await window.BrandHistoryManager.clearHistory();
+          state.activeRevisionId = null;
+          renderHistoryList();
+          updateBadges();
+          showToast('Your revision history was cleared.', 'info');
+        } catch (error) {
+          showToast(error.message || 'Could not clear revision history.', 'error');
+        }
       }
     });
   }
@@ -1309,10 +2045,17 @@
   /**
    * Application Bootstrapper
    */
-  function initApp() {
+  async function startAuthenticatedApp() {
+    if (state.appInitialized) return;
+    state.appInitialized = true;
+
     // 1. Initialize rules & history
     window.BrandRulesManager.init(state.activePresetKey);
-    window.BrandHistoryManager.init();
+    try {
+      await window.BrandHistoryManager.init(state.authenticatedUser.id);
+    } catch (error) {
+      showToast(error.message || 'Could not load server revision history.', 'error');
+    }
 
     // 2. Set default initial content (High-Risk sample so the user immediately sees the governance checker in action)
     if (window.SAMPLE_CONTENTS && window.SAMPLE_CONTENTS.highRisk) {
@@ -1341,6 +2084,26 @@
           }
         })
         .catch(() => {});
+    }
+  }
+
+  async function initApp() {
+    registerAuthListeners();
+    try {
+      const authState = await window.BrandGuardAuth.initialize();
+      watchAuthStateChanges();
+      if (authState.user) {
+        setAuthenticatedUser(authState.user);
+        startAuthenticatedApp();
+      } else {
+        setAuthenticatedUser(null);
+        showAuthMode('login');
+      }
+    } catch (error) {
+      setAuthenticatedUser(null);
+      setAuthMessage(error.message || 'Authentication is unavailable. Try again later.', 'error');
+      dom.loginForm.querySelector('button[type="submit"]').disabled = true;
+      dom.registerForm.querySelector('button[type="submit"]').disabled = true;
     }
   }
 

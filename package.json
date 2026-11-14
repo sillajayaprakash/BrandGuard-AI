@@ -5,7 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node --env-file-if-exists=.env server.js",
-    "test": "node test/checker.test.js && node test/gemini.test.js && node test/claimVerifier.test.js && node test/visualChecker.test.js"
+    "test": "node test/checker.test.js && node test/gemini.test.js && node test/claimVerifier.test.js && node test/visualChecker.test.js && node test/comments.test.js && node test/auth.test.js && node test/roles.test.js && node test/workflow.test.js && node test/disposableFixtureSafety.test.js"
   },
   "keywords": [
     "brand-governance",
@@ -17,6 +17,7 @@
   "author": "BrandGuard AI Team",
   "license": "MIT",
   "dependencies": {
-    "@google/genai": "^3.0.0"
+    "@google/genai": "^3.0.0",
+    "@supabase/supabase-js": "2.110.0"
   }
 }

@@ -184,7 +184,7 @@
     }
 
     try {
-      const response = await fetch('/api/verify-claims', {
+      const response = await window.BrandGuardAuth.apiFetch('/api/verify-claims', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content, evidenceSources })

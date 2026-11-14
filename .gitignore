@@ -1,23 +1,23 @@
-# Environment files containing API keys and secrets
+# Local environment files and secrets. Keep only the placeholder template.
 .env
 .env.*
-.env.local
 !.env.example
+
+# Local-only agent data, disposable-project approval, and Auth fixture registry.
+.kilo/
+.local/
+.local/disposable-project-approval.json
+.local/disposable-auth-fixtures.json
+.local/disposable-auth-fixtures.json.*.tmp
+
+# Private key and certificate material
+*.pem
+*.key
+*.p12
+*.pfx
 
 # Dependencies
 node_modules/
-package-lock.json
-
-# Logs
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# OS metadata
-.DS_Store
-Thumbs.db
-
-package-lock.json
 
 # Logs
 npm-debug.log*
